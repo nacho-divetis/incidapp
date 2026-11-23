@@ -11,8 +11,9 @@ services:
     autoDeployTrigger: checksPass
     # El build necesita las devDependencies (tsup, Vite, tsx para las migraciones).
     buildCommand: npm ci --include=dev && npm run build
-    # El plan gratuito no tiene preDeployCommand: las migraciones se aplican al arrancar.
-    startCommand: npm run db:migrate && npm start
+    # El plan gratuito no tiene preDeployCommand: las migraciones y el seed (idempotente, no cambia
+    # contraseñas) se aplican al arrancar. El seed crea los departamentos y los usuarios demo.
+    startCommand: npm run db:migrate && npm run db:seed && npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION

@@ -2,5 +2,8 @@
 // Efecto lateral intencionado: configura Zod en español antes de que nadie valide nada.
 import './zod-locale';
 
+export * from './audit';
+export * from './auth';
+export * from './demo-users';
 export * from './errors';
 export * from './health';

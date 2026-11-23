@@ -20,8 +20,10 @@ const config = readConfig();
 const container = await createContainer(config);
 const app = await buildApp({
   getHealth: container.getHealth,
+  auth: container.auth,
   webDistDir: config.webDistDir,
   enforceHttps: config.enforceHttps,
+  trustProxyHops: config.trustProxyHops,
   logger: config.nodeEnv === 'test' ? false : { level: 'info' },
 });
 app.addHook('onClose', () => container.close());

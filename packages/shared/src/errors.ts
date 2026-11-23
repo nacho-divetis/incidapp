@@ -1,12 +1,16 @@
 import { z } from 'zod';
 
-/** Códigos de error de la API. `UNAUTHORIZED` (401) se reserva para la sesión de F01. */
+/**
+ * Códigos de error de la API: `UNAUTHORIZED` (401) sin sesión válida o con credenciales incorrectas
+ * y `TOO_MANY_REQUESTS` (429) al superar el límite de intentos de inicio de sesión.
+ */
 export const ErrorCode = z.enum([
   'VALIDATION',
   'UNAUTHORIZED',
   'FORBIDDEN',
   'NOT_FOUND',
   'CONFLICT',
+  'TOO_MANY_REQUESTS',
   'INTERNAL',
 ]);
 export type ErrorCode = z.infer<typeof ErrorCode>;

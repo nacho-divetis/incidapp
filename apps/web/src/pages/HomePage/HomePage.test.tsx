@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { authKeys } from '../../queries/auth';
 import { HomePage } from './HomePage';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -12,9 +13,19 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
+const DEMO_USER = {
+  id: '6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d',
+  email: 'admin@incidapp.test',
+  name: 'Elena Ruiz',
+  role: 'ADMIN',
+  departments: [],
+} as const;
+
 function renderHomePage() {
-  // Sin reintentos: un fallo se muestra en el primer intento.
+  // Sin reintentos: un fallo se muestra en el primer intento. La página va dentro de
+  // `RequireSession`, así que el usuario ya está en la caché.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  queryClient.setQueryData(authKeys.me, DEMO_USER);
   return render(
     <QueryClientProvider client={queryClient}>
       <HomePage />
@@ -28,6 +39,14 @@ beforeEach(() => {
 });
 
 describe('HomePage', () => {
+  it('saluda al usuario con sesión', () => {
+    fetchMock.mockReturnValue(new Promise<Response>(() => {}));
+
+    renderHomePage();
+
+    expect(screen.getByText('Hola, Elena Ruiz.')).toBeInTheDocument();
+  });
+
   it('CA-00.7: muestra el nombre y un estado de carga mientras consulta /api/health', () => {
     fetchMock.mockReturnValue(new Promise<Response>(() => {}));
 
