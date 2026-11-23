@@ -54,7 +54,7 @@
 - Cubre: CA-00.10
 - Archivos: render.yaml, README.md (URL de la demo)
 - Verificación: CI en verde en el PR (`gh pr checks`) · tras el despliegue, `curl -s https://<servicio>.onrender.com/api/health` → 200 con `"db":"ok"` y `/` muestra la página inicial · `npm run dev` en local arranca API y web (CA-00.2 de punta a punta)
-- Notas: `render.yaml` según `plan.md` (free, Frankfurt, Node 24, `npm ci --include=dev && npm run build`, `npm run db:migrate && npm start`, `healthCheckPath`, `autoDeployTrigger: checksPass`, `DATABASE_URL` con `sync: false`). Abrir el PR `feat/F00-fundaciones` → `main` y hacer *squash merge* (ambos piden confirmación). Después, el usuario crea el Blueprint en Render siguiendo las pautas dadas el 23/11 y pega `DATABASE_URL` de Neon. Anotar aquí la URL y el resultado del `curl`.
+- Notas: `render.yaml` según `plan.md` (free, Frankfurt, Node 24, `npm ci --include=dev && npm run build`, `npm run db:migrate && npm start`, `healthCheckPath`, `autoDeployTrigger: checksPass`, `DATABASE_URL` con `sync: false`). Abrir el PR `feat/F00-fundaciones` → `main` y hacer *squash merge* (ambos piden confirmación). Después, el usuario crea el Blueprint en Render siguiendo las pautas dadas el 23/11 y pega `DATABASE_URL` de Neon. Anotar aquí la URL y el resultado del `curl`. Avance (23/11): `render.yaml` revisado (2 hallazgos bajos, sin cambios); `npm run dev` comprobado de punta a punta (web 200 en :5173 y `/api/health` → `db: ok` a través del proxy de Vite).
 
 ### T-00.06 · Definir los tokens, configurar Storybook y las reglas de UI
 - Estado: pendiente
