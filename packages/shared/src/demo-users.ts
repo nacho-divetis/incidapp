@@ -35,3 +35,14 @@ export const DEMO_USERS: readonly DemoUser[] = [
   },
   { email: 'usuario@incidapp.test', name: 'Pablo Moreno', role: 'USER', departmentCodes: ['LOG'] },
 ];
+
+const DEMO_EMAILS: ReadonlySet<string> = new Set(DEMO_USERS.map((user) => user.email));
+
+/**
+ * `true` si el email es de un usuario demo. Única fuente de la protección de los usuarios demo
+ * (CA-02.11): la usa la `AuthorizationPolicy`. Normaliza el email igual que los esquemas de entrada
+ * (sin espacios y en minúsculas) para que una variante de mayúsculas no esquive la protección.
+ */
+export function isDemoUserEmail(email: string): boolean {
+  return DEMO_EMAILS.has(email.trim().toLowerCase());
+}

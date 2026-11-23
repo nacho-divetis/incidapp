@@ -4,14 +4,14 @@
 > Estados: `pendiente` · `en curso` · `hecha` · `bloqueada`
 
 ### T-02.01 · Ampliar el contrato en `shared` con estados, acciones, usuarios y auditoría
-- Estado: pendiente
+- Estado: hecha
 - Agente: backend-dev · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: —
 - Cubre: CA-02.7 (esquema del alta), CA-02.8 (esquema de la edición), CA-02.11 (`isDemoUserEmail`), CA-02.12 (esquema del restablecimiento), CA-02.13 (acciones de auditoría)
 - Archivos: packages/shared/src/{status.ts,authorization.ts,users.ts,audit.ts,demo-users.ts,index.ts} (+ tests)
 - Verificación: npm test -w @incidapp/shared && npm run typecheck && npm run lint
-- Notas: según la tabla **Contrato** de `plan.md`: `Status`, `GlobalAction`, `UserAction`, `UserAdmin`, `UserName`, `NewPassword`, `CreateUserInput`, `UpdateUserInput` (al menos un campo), `ResetPasswordInput`, las 5 acciones nuevas de `AuditAction` e `isDemoUserEmail`. El email reutiliza el esquema de `LoginInput` (extraerlo a una constante compartida). Mensajes de validación en español; campos extra descartados. **No** se toca `CurrentUser` aquí (lo amplía T-02.02 junto con la API, para que el `typecheck` siga en verde). Tests de cada esquema: válidos, límites (nombre 100, contraseña 8 y 200), departamentos vacíos o repetidos, `UpdateUserInput` vacío, campos extra.
+- Notas: según la tabla **Contrato** de `plan.md`: `Status`, `GlobalAction`, `UserAction`, `UserAdmin`, `UserName`, `NewPassword`, `CreateUserInput`, `UpdateUserInput` (al menos un campo), `ResetPasswordInput`, las 5 acciones nuevas de `AuditAction` e `isDemoUserEmail`. El email reutiliza el esquema de `LoginInput` (extraerlo a una constante compartida). Mensajes de validación en español; campos extra descartados. **No** se toca `CurrentUser` aquí (lo amplía T-02.02 junto con la API, para que el `typecheck` siga en verde). Tests de cada esquema: válidos, límites (nombre 100, contraseña 8 y 200), departamentos vacíos o repetidos, `UpdateUserInput` vacío, campos extra. Hecha: el email se extrae a la constante `Email` (en `auth.ts`), que reutilizan `LoginInput` y los esquemas de usuarios; se exportan `USER_NAME_MAX_LENGTH` (100) y `PASSWORD_MIN_LENGTH` (8). `isDemoUserEmail` normaliza antes de comparar (una variante en mayúsculas no esquiva la protección). `UpdateUserInput` vacío da el error en la raíz (`path` vacío). `UserAdmin.createdAt` con `z.iso.datetime()`. Sin máximo de departamentos; la existencia la comprueba la API. 115 tests en `shared`. Revisión: aprobada, sin hallazgos. **Para T-02.03:** `AuditData` aún no admite arrays de *strings*.
 
 ### T-02.02 · Implementar la `AuthorizationPolicy` y las acciones globales del usuario actual
 - Estado: pendiente

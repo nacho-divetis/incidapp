@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AuditAction,
   CurrentUser,
   DEMO_PASSWORD,
   DEMO_USERS,
@@ -167,12 +166,6 @@ describe('CurrentUser', () => {
     expect(DepartmentSummary.safeParse({ id: user.departments[0]?.id, code: 'ADM' }).success).toBe(
       false,
     );
-  });
-});
-
-describe('AuditAction', () => {
-  it('CA-01.9: define las acciones de auditoría del inicio de sesión', () => {
-    expect(AuditAction.options).toEqual(['LOGIN_SUCCEEDED', 'LOGIN_FAILED']);
   });
 });
 
