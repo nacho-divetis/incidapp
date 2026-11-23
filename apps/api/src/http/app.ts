@@ -2,8 +2,11 @@
 // servicio de la web compilada y respuestas uniformes para lo que no existe.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import fastifyHelmet from '@fastify/helmet';
+import fastifyHelmet, { type FastifyHelmetOptions } from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
+// Efecto lateral explícito: configura los mensajes de Zod en español (los `details` de un 400).
+// No se deja en manos de que alguna ruta importe por casualidad un valor del contrato.
+import '@incidapp/shared';
 import type { ErrorResponse } from '@incidapp/shared';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -17,6 +20,11 @@ export interface AppDeps {
   webDistDir?: string;
   /** Opciones del logger (pino). Por defecto, sin log (tests). */
   logger?: { level: string; stream?: NodeJS.WritableStream } | false;
+  /**
+   * Exige HTTPS (HSTS y CSP `upgrade-insecure-requests`). Lo decide `config` (solo en producción).
+   * Por defecto, `true`: la configuración más estricta.
+   */
+  enforceHttps?: boolean;
 }
 
 const API_PREFIX = '/api';
@@ -37,6 +45,18 @@ function loggerOptions(logger: AppDeps['logger']): FastifyServerOptions['logger'
   return { level: logger.level, stream: logger.stream, redact: REDACTED_PATHS };
 }
 
+/**
+ * Opciones de Helmet. Con HTTPS, las de por defecto (CSP completa y HSTS). Sin HTTPS (local), la misma CSP
+ * sin `upgrade-insecure-requests` y sin HSTS, para que el navegador no fuerce `https://localhost`.
+ */
+const helmetOptions = (enforceHttps: boolean): FastifyHelmetOptions =>
+  enforceHttps
+    ? {}
+    : {
+        contentSecurityPolicy: { directives: { upgradeInsecureRequests: null } },
+        strictTransportSecurity: false,
+      };
+
 const isApiPath = (pathname: string) =>
   pathname === API_PREFIX || pathname.startsWith(`${API_PREFIX}/`);
 
@@ -52,7 +72,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.setErrorHandler(errorHandler);
 
   // Cabeceras de seguridad en todas las respuestas, incluida la CSP por defecto de Helmet.
-  await app.register(fastifyHelmet);
+  await app.register(fastifyHelmet, helmetOptions(deps.enforceHttps ?? true));
 
   await app.register(healthRoutes({ getHealth: deps.getHealth }), { prefix: API_PREFIX });
 

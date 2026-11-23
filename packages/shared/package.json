@@ -4,6 +4,10 @@
   "private": true,
   "description": "Contrato entre la API y la web: esquemas Zod, tipos y enums compartidos",
   "type": "module",
+  "sideEffects": [
+    "./src/index.ts",
+    "./src/zod-locale.ts"
+  ],
   "exports": {
     ".": "./src/index.ts"
   },

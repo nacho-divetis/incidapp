@@ -17,6 +17,7 @@ describe('loadConfig', () => {
       database: { driver: 'pglite', dataDir: path.join(CWD, '.data', 'pglite') },
       webDistDir: path.resolve(CWD, '../web/dist'),
       version: '0.1.0',
+      enforceHttps: false,
     });
   });
 
@@ -73,6 +74,22 @@ describe('loadConfig', () => {
     expect(config.database).toEqual({ driver: 'pglite', dataDir: path.join(CWD, 'tmp', 'db') });
     expect(config.webDistDir).toBe(path.resolve(CWD, '/var/www'));
   });
+
+  it.each([
+    ['development', false],
+    ['test', false],
+    ['production', true],
+  ] as const)(
+    'CA-00.5: con NODE_ENV=%s, enforceHttps es %s (solo producción exige HTTPS)',
+    (nodeEnv, expected) => {
+      const env =
+        nodeEnv === 'production'
+          ? { NODE_ENV: nodeEnv, DATABASE_URL: NEON_URL }
+          : { NODE_ENV: nodeEnv };
+
+      expect(loadConfig(env, CWD).enforceHttps).toBe(expected);
+    },
+  );
 
   it('añade a la versión los 7 primeros caracteres de RENDER_GIT_COMMIT si existe', () => {
     const config = loadConfig({ RENDER_GIT_COMMIT: 'abc1234def5678' }, CWD);

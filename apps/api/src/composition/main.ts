@@ -21,6 +21,7 @@ const container = await createContainer(config);
 const app = await buildApp({
   getHealth: container.getHealth,
   webDistDir: config.webDistDir,
+  enforceHttps: config.enforceHttps,
   logger: config.nodeEnv === 'test' ? false : { level: 'info' },
 });
 app.addHook('onClose', () => container.close());

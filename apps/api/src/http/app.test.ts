@@ -146,6 +146,33 @@ describe('buildApp · cabeceras de seguridad', () => {
   });
 });
 
+describe('buildApp · HTTPS según el entorno', () => {
+  it('CA-00.5: con enforceHttps (producción) la CSP completa incluye upgrade-insecure-requests y hay HSTS', async () => {
+    app = await buildApp({ getHealth, webDistDir, enforceHttps: true });
+
+    const response = await app.inject({ method: 'GET', url: '/' });
+
+    expect(response.headers['content-security-policy']).toContain('upgrade-insecure-requests');
+    expect(response.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(response.headers['strict-transport-security']).toMatch(/max-age=\d+/);
+  });
+
+  it('CA-00.5: sin enforceHttps (fuera de producción) no hay upgrade-insecure-requests ni HSTS, para servir sobre http://localhost', async () => {
+    app = await buildApp({ getHealth, webDistDir, enforceHttps: false });
+
+    const response = await app.inject({ method: 'GET', url: '/' });
+
+    const csp = response.headers['content-security-policy'];
+    expect(csp).not.toContain('upgrade-insecure-requests');
+    // El resto de la CSP por defecto se mantiene.
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("object-src 'none'");
+    expect(response.headers['strict-transport-security']).toBeUndefined();
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+  });
+});
+
 describe('buildApp · logger', () => {
   it('CA-00.5: las cabeceras authorization y cookie nunca llegan al log, ni siquiera en un 500', async () => {
     const lines: string[] = [];

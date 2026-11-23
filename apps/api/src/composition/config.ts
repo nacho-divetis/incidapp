@@ -22,6 +22,11 @@ export interface Config {
   webDistDir: string;
   /** Versión del paquete de la API y, si existe, el commit desplegado. */
   version: string;
+  /**
+   * Exige HTTPS en el navegador (HSTS y la directiva CSP `upgrade-insecure-requests`). Solo en producción:
+   * en local, `npm start` sirve sobre `http://localhost` y esas cabeceras romperían la carga de la web.
+   */
+  enforceHttps: boolean;
 }
 
 /** Una variable vacía (`DATABASE_URL=` en `.env.example`) cuenta como no definida. */
@@ -81,5 +86,6 @@ export function loadConfig(
     database,
     webDistDir: path.resolve(cwd, vars.WEB_DIST_DIR ?? '../web/dist'),
     version: commit ? `${packageJson.version}+${commit}` : packageJson.version,
+    enforceHttps: nodeEnv === 'production',
   };
 }
