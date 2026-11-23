@@ -1,0 +1,17 @@
+{
+  "name": "@incidapp/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contrato entre la API y la web: esquemas Zod, tipos y enums compartidos",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

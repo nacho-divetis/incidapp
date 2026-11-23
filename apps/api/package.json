@@ -1,0 +1,21 @@
+{
+  "name": "@incidapp/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API de IncidApp (Fastify + Clean Architecture). En producción sirve también la web compilada",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/composition/main.ts",
+    "build": "tsup",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@incidapp/shared": "*"
+  },
+  "devDependencies": {
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15"
+  }
+}

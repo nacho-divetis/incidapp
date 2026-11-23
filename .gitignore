@@ -31,3 +31,6 @@ CLAUDE.local.md
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Worktrees de trabajo en paralelo
+.worktrees/
