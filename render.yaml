@@ -1,0 +1,24 @@
+# Blueprint de Render (infraestructura como código). Ver docs/adr/006-despliegue-coste-cero.md
+# Un único servicio web gratuito: la API (Fastify) sirve también el front compilado.
+services:
+  - type: web
+    name: incidapp
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    # Se despliega al hacer merge en main, solo si la CI de GitHub está en verde.
+    autoDeployTrigger: checksPass
+    # El build necesita las devDependencies (tsup, Vite, tsx para las migraciones).
+    buildCommand: npm ci --include=dev && npm run build
+    # El plan gratuito no tiene preDeployCommand: las migraciones se aplican al arrancar.
+    startCommand: npm run db:migrate && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: '24'
+      - key: NODE_ENV
+        value: production
+      # Cadena de conexión de Neon. El valor se pega en el panel de Render, nunca en el repositorio.
+      - key: DATABASE_URL
+        sync: false

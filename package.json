@@ -1,0 +1,45 @@
+{
+  "name": "incidapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gestión de incidencias de una empresa ficticia (TFM del Máster de Desarrollo con IA)",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/shared",
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names api,web --prefix-colors blue,magenta \"npm run dev -w @incidapp/api\" \"npm run dev -w @incidapp/web\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint . --max-warnings=0",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start -w @incidapp/api",
+    "db:generate": "npm run db:generate -w @incidapp/api",
+    "db:migrate": "npm run db:migrate -w @incidapp/api",
+    "db:seed": "npm run db:seed -w @incidapp/api",
+    "format": "prettier --write .",
+    "prepare": "node .husky/install.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "concurrently": "^10.0.7",
+    "eslint": "^10.15.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-boundaries": "^7.4.4",
+    "globals": "^17.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.2",
+    "prettier": "^3.10.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^5.1.1"
+  }
+}

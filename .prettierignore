@@ -1,0 +1,15 @@
+# Generados o gestionados por herramientas
+node_modules/
+dist/
+build/
+coverage/
+storybook-static/
+playwright-report/
+test-results/
+.data/
+.worktrees/
+apps/api/drizzle/
+package-lock.json
+
+# La documentación se escribe a mano y no se reformatea
+*.md
