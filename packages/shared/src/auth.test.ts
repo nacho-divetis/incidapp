@@ -5,6 +5,7 @@ import {
   DEMO_PASSWORD,
   DEMO_USERS,
   DepartmentSummary,
+  EMAIL_MAX_LENGTH,
   LoginInput,
   Role,
 } from './index';
@@ -50,6 +51,23 @@ describe('LoginInput', () => {
     expect(
       LoginInput.safeParse({ email: 'a@incidapp.test', password: 'x'.repeat(200) }).success,
     ).toBe(true);
+  });
+
+  it('CA-01.3: acepta un email de 254 caracteres y rechaza uno de 255', () => {
+    const DOMAIN = '@incidapp.test';
+    const emailOf = (length: number) => `${'a'.repeat(length - DOMAIN.length)}${DOMAIN}`;
+    expect(EMAIL_MAX_LENGTH).toBe(254);
+
+    expect(LoginInput.safeParse({ email: emailOf(254), password: 'x' }).success).toBe(true);
+    expect(loginErrors({ email: emailOf(255), password: 'x' })).toEqual({
+      email: ['El email no es válido.'],
+    });
+  });
+
+  it('CA-01.3: el límite se aplica al email ya normalizado (los espacios no cuentan)', () => {
+    const email = `${'a'.repeat(240)}@incidapp.test`;
+
+    expect(LoginInput.safeParse({ email: `  ${email}  `, password: 'x' }).success).toBe(true);
   });
 
   it.each([

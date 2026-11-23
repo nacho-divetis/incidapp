@@ -1,5 +1,6 @@
 // Comandos de base de datos: `npm run db:migrate` y `npm run db:seed`.
 // Viven en el composition root porque eligen el driver a partir de la configuración.
+import { createArgon2PasswordHasher } from '../infrastructure/auth/argon2-password-hasher';
 import { createDatabase } from '../infrastructure/db/client';
 import { migrateDatabase } from '../infrastructure/db/migrate';
 import { seedDatabase } from '../infrastructure/db/seed';
@@ -7,7 +8,10 @@ import { ConfigError, loadConfig } from './config';
 
 const COMMANDS = {
   migrate: { run: migrateDatabase, done: 'Migraciones aplicadas.' },
-  seed: { run: (handle) => seedDatabase(handle.db), done: 'Datos demo cargados.' },
+  seed: {
+    run: (handle) => seedDatabase(handle.db, { passwordHasher: createArgon2PasswordHasher() }),
+    done: 'Datos demo cargados.',
+  },
 } satisfies Record<string, { run: typeof migrateDatabase; done: string }>;
 
 const name = process.argv[2];

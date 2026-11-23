@@ -25,13 +25,19 @@ const appliedMigrations = async (db: DatabaseHandle['db']) => {
 };
 
 describe('migrateDatabase', () => {
-  it('CA-00.8: sobre una base de datos vacía aplica las migraciones generadas (tabla departments)', async () => {
+  it('CA-00.8: sobre una base de datos vacía aplica las migraciones generadas (departamentos, usuarios, sesiones y auditoría)', async () => {
     handle = await createDatabase({ driver: 'pglite' });
     expect(await tableNames(handle.db)).toEqual([]);
 
     await migrateDatabase(handle);
 
-    expect(await tableNames(handle.db)).toEqual(['departments']);
+    expect(await tableNames(handle.db)).toEqual([
+      'audit_log',
+      'departments',
+      'sessions',
+      'user_departments',
+      'users',
+    ]);
     expect(await appliedMigrations(handle.db)).toBeGreaterThan(0);
   });
 

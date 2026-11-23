@@ -29,6 +29,12 @@ export type CurrentUser = z.infer<typeof CurrentUser>;
 export const PASSWORD_MAX_LENGTH = 200;
 
 /**
+ * Longitud máxima del email (límite práctico de una dirección, RFC 5321). Acota lo que se guarda en
+ * la auditoría, que es solo de inserción y no se puede purgar.
+ */
+export const EMAIL_MAX_LENGTH = 254;
+
+/**
  * Cuerpo de `POST /api/auth/login`. El email se normaliza (sin espacios y en minúsculas) antes de
  * validar el formato; la contraseña se acepta tal cual. Los campos que no son `email` ni
  * `password` se descartan: el cliente no decide nada más del usuario (`role`, `active`…).
@@ -42,6 +48,7 @@ export const LoginInput = z.object({
     .trim()
     .toLowerCase()
     .min(1, 'El email es obligatorio.')
+    .max(EMAIL_MAX_LENGTH, 'El email no es válido.')
     .pipe(z.email('El email no es válido.')),
   password: z
     .string({

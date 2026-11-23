@@ -22,3 +22,6 @@ Usamos **sesiones guardadas en la BD** (tabla `sessions`, identificador aleatori
 - **Positivas:** logout y desactivación efectivos; menos superficie (sin tokens accesibles desde JavaScript).
 - **Negativas / deuda aceptada:** una consulta por petición (despreciable a esta escala) y limpieza de sesiones caducadas.
 - **Cuándo revisarla:** si la API pasara a tener clientes de otros orígenes (app móvil, terceros).
+
+## Notas
+- **23/11/2026 (F01, T-01.02):** en la BD no se guarda el *token* de la cookie sino su **SHA-256 en hexadecimal** (`sessions.id`). El *token* (32 bytes aleatorios en base64url) solo viaja en la cookie; si se filtrara la tabla `sessions`, sus identificadores no servirían como cookie. Al tener el *token* 256 bits de entropía, basta un *hash* rápido sin sal. Las contraseñas usan argon2id (`@node-rs/argon2`) con los parámetros mínimos de OWASP: 19 MiB, 2 pasadas y 1 hilo.
