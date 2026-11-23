@@ -10,5 +10,6 @@ export * from './Label';
 export * from './Link';
 export * from './Select';
 export * from './Spinner';
+export * from './Table';
 export * from './Text';
 export * from './Textarea';
