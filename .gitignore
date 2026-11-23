@@ -1,0 +1,33 @@
+# Dependencias y builds
+node_modules/
+dist/
+build/
+storybook-static/
+*.tsbuildinfo
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Datos locales (PGlite) y subidas
+.data/
+*.db
+
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Harness de trabajo: vive fuera del repositorio y no se publica (salvaguarda)
+.claude/
+AGENTS.md
+CLAUDE.md
+CLAUDE.local.md
+
+# Sistema y editores
+*.log
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
