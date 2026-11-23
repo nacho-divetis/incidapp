@@ -14,7 +14,7 @@ import {
   UnauthorizedError,
   ValidationError,
 } from '../application/errors';
-import { errorHandler } from './error-handler';
+import { errorHandler, TooManyRequestsError } from './error-handler';
 
 let app: FastifyInstance;
 
@@ -145,5 +145,33 @@ describe('errorHandler', () => {
 
     expect(response.statusCode).toBe(500);
     expect(ErrorResponse.parse(response.json()).error.code).toBe('INTERNAL');
+  });
+
+  it('CA-01.8: TooManyRequestsError responde 429 TOO_MANY_REQUESTS con su mensaje en español', async () => {
+    await appThrowing(new TooManyRequestsError('Demasiados intentos. Espera un poco.'));
+
+    const response = await app.inject({ method: 'GET', url: '/boom' });
+
+    expect(response.statusCode).toBe(429);
+    expect(ErrorResponse.parse(response.json())).toEqual({
+      error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiados intentos. Espera un poco.' },
+    });
+  });
+
+  it('CA-01.8: cualquier otro error con statusCode 429 responde TOO_MANY_REQUESTS con un mensaje genérico en español', async () => {
+    const error = Object.assign(new Error('Rate limit exceeded, retry in 1 minute'), {
+      statusCode: 429,
+    });
+    await appThrowing(error);
+
+    const response = await app.inject({ method: 'GET', url: '/boom' });
+
+    expect(response.statusCode).toBe(429);
+    expect(ErrorResponse.parse(response.json())).toEqual({
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Demasiadas peticiones. Inténtalo de nuevo en unos minutos.',
+      },
+    });
   });
 });

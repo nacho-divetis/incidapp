@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { GetHealth } from '../application/health/get-health';
 import { buildApp } from './app';
+import { unusedAuth } from './test-support';
 
 const getHealth: GetHealth = async () => ({ status: 'ok', db: 'ok', version: '0.1.0' });
 
@@ -19,7 +20,7 @@ afterEach(async () => {
 
 describe('buildApp · mensajes de validación', () => {
   it('CA-00.5: los detalles de un 400 por validación del esquema Zod están en español', async () => {
-    app = await buildApp({ getHealth });
+    app = await buildApp({ auth: unusedAuth, getHealth });
     // Ruta de prueba con validación del cuerpo, como las que añadirán las features.
     app
       .withTypeProvider<ZodTypeProvider>()
@@ -32,6 +33,8 @@ describe('buildApp · mensajes de validación', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/validated',
+      // Cabecera anti-CSRF obligatoria en los POST a /api (CA-01.10).
+      headers: { 'x-requested-with': 'fetch' },
       payload: { title: '', tags: [1] },
     });
 

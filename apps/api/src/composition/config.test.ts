@@ -18,6 +18,8 @@ describe('loadConfig', () => {
       webDistDir: path.resolve(CWD, '../web/dist'),
       version: '0.1.0',
       enforceHttps: false,
+      trustProxyHops: 0,
+      loginRateLimit: { max: 10, timeWindowMs: 900_000 },
     });
   });
 
@@ -95,5 +97,53 @@ describe('loadConfig', () => {
     const config = loadConfig({ RENDER_GIT_COMMIT: 'abc1234def5678' }, CWD);
 
     expect(config.version).toBe('0.1.0+abc1234');
+  });
+
+  it.each([
+    ['development', 0],
+    ['test', 0],
+    ['production', 1],
+  ] as const)(
+    'CA-01.8: con NODE_ENV=%s y sin TRUST_PROXY_HOPS, se confía en %i saltos de proxy',
+    (nodeEnv, expected) => {
+      const env =
+        nodeEnv === 'production'
+          ? { NODE_ENV: nodeEnv, DATABASE_URL: NEON_URL }
+          : { NODE_ENV: nodeEnv };
+
+      expect(loadConfig(env, CWD).trustProxyHops).toBe(expected);
+    },
+  );
+
+  it('CA-01.8: respeta TRUST_PROXY_HOPS, LOGIN_RATE_LIMIT_MAX y LOGIN_RATE_LIMIT_WINDOW_MS', () => {
+    const config = loadConfig(
+      { TRUST_PROXY_HOPS: '2', LOGIN_RATE_LIMIT_MAX: '3', LOGIN_RATE_LIMIT_WINDOW_MS: '60000' },
+      CWD,
+    );
+
+    expect(config.trustProxyHops).toBe(2);
+    expect(config.loginRateLimit).toEqual({ max: 3, timeWindowMs: 60_000 });
+  });
+
+  it('CA-01.8: TRUST_PROXY_HOPS=0 en producción desactiva la confianza en el proxy', () => {
+    const config = loadConfig(
+      { NODE_ENV: 'production', DATABASE_URL: NEON_URL, TRUST_PROXY_HOPS: '0' },
+      CWD,
+    );
+
+    expect(config.trustProxyHops).toBe(0);
+  });
+
+  it.each([
+    ['TRUST_PROXY_HOPS', { TRUST_PROXY_HOPS: '-1' }],
+    ['TRUST_PROXY_HOPS', { TRUST_PROXY_HOPS: 'true' }],
+    ['TRUST_PROXY_HOPS', { TRUST_PROXY_HOPS: '1.5' }],
+    ['LOGIN_RATE_LIMIT_MAX', { LOGIN_RATE_LIMIT_MAX: '0' }],
+    ['LOGIN_RATE_LIMIT_MAX', { LOGIN_RATE_LIMIT_MAX: 'diez' }],
+    ['LOGIN_RATE_LIMIT_WINDOW_MS', { LOGIN_RATE_LIMIT_WINDOW_MS: '0' }],
+    ['LOGIN_RATE_LIMIT_WINDOW_MS', { LOGIN_RATE_LIMIT_WINDOW_MS: '-5' }],
+  ])('CA-01.8: valida %s al arrancar con un mensaje en español', (variable, env) => {
+    expect(() => loadConfig(env, CWD)).toThrow(ConfigError);
+    expect(() => loadConfig(env, CWD)).toThrow(new RegExp(`Configuración no válida.*${variable}`));
   });
 });

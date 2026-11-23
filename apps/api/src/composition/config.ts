@@ -27,7 +27,17 @@ export interface Config {
    * en local, `npm start` sirve sobre `http://localhost` y esas cabeceras romperían la carga de la web.
    */
   enforceHttps: boolean;
+  /**
+   * Saltos de *proxy* de confianza para obtener la IP real del cliente (`X-Forwarded-For`). Nunca
+   * «confiar en todos»: el cliente podría falsear la cabecera para saltarse el límite de intentos.
+   */
+  trustProxyHops: number;
+  /** Límite de intentos de `POST /api/auth/login` por IP (CA-01.8). */
+  loginRateLimit: { max: number; timeWindowMs: number };
 }
+
+/** 10 intentos de login por IP cada 15 minutos (spec F01, duda 2). */
+const DEFAULT_LOGIN_RATE_LIMIT = { max: 10, timeWindowMs: 15 * 60 * 1000 };
 
 /** Una variable vacía (`DATABASE_URL=` en `.env.example`) cuenta como no definida. */
 const optional = <T extends z.ZodType>(schema: T) =>
@@ -43,6 +53,9 @@ const EnvSchema = z.object({
   WEB_DIST_DIR: optional(z.string()),
   // La define Render en cada despliegue.
   RENDER_GIT_COMMIT: optional(z.string()),
+  TRUST_PROXY_HOPS: optional(z.coerce.number().int().min(0)),
+  LOGIN_RATE_LIMIT_MAX: optional(z.coerce.number().int().min(1)),
+  LOGIN_RATE_LIMIT_WINDOW_MS: optional(z.coerce.number().int().min(1)),
 });
 
 /** `NOMBRE: problema` de cada variable no válida, sin repetir su valor. */
@@ -87,5 +100,11 @@ export function loadConfig(
     webDistDir: path.resolve(cwd, vars.WEB_DIST_DIR ?? '../web/dist'),
     version: commit ? `${packageJson.version}+${commit}` : packageJson.version,
     enforceHttps: nodeEnv === 'production',
+    // En producción, el proxy de Render es un salto; en local no hay proxy.
+    trustProxyHops: vars.TRUST_PROXY_HOPS ?? (nodeEnv === 'production' ? 1 : 0),
+    loginRateLimit: {
+      max: vars.LOGIN_RATE_LIMIT_MAX ?? DEFAULT_LOGIN_RATE_LIMIT.max,
+      timeWindowMs: vars.LOGIN_RATE_LIMIT_WINDOW_MS ?? DEFAULT_LOGIN_RATE_LIMIT.timeWindowMs,
+    },
   };
 }

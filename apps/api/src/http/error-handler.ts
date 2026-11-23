@@ -15,6 +15,20 @@ import {
 const INVALID_DATA_MESSAGE = 'Los datos enviados no son válidos.';
 const INVALID_REQUEST_MESSAGE = 'La petición no es válida.';
 const UNEXPECTED_ERROR_MESSAGE = 'Se ha producido un error inesperado.';
+const TOO_MANY_REQUESTS_MESSAGE = 'Demasiadas peticiones. Inténtalo de nuevo en unos minutos.';
+
+/**
+ * Límite de peticiones superado (429). Es un error de la capa HTTP, no de aplicación: lo lanza el
+ * *rate limit* de `@fastify/rate-limit` (su `errorResponseBuilder`) con un mensaje en español.
+ */
+export class TooManyRequestsError extends Error {
+  readonly statusCode = 429;
+
+  constructor(message: string = TOO_MANY_REQUESTS_MESSAGE) {
+    super(message);
+    this.name = 'TooManyRequestsError';
+  }
+}
 
 interface HttpError {
   status: number;
@@ -56,9 +70,16 @@ export function toHttpError(error: unknown): HttpError {
     }
   }
 
+  if (error instanceof TooManyRequestsError) {
+    return { status: 429, body: errorBody('TOO_MANY_REQUESTS', error.message) };
+  }
+
   // Errores de cliente de Fastify (JSON mal formado, tipo de contenido no admitido, cuerpo demasiado grande…).
   // Su mensaje original está en inglés y puede describir detalles internos: se sustituye por uno genérico.
   const status = (error as { statusCode?: unknown } | null)?.statusCode;
+  if (status === 429) {
+    return { status, body: errorBody('TOO_MANY_REQUESTS', TOO_MANY_REQUESTS_MESSAGE) };
+  }
   if (typeof status === 'number' && status >= 400 && status < 500) {
     return { status, body: errorBody('VALIDATION', INVALID_REQUEST_MESSAGE) };
   }
