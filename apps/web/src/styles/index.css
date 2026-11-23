@@ -1,0 +1,27 @@
+/*
+ * Hoja de estilos de entrada de la web y de Storybook: Tailwind 4, tokens y estilos base.
+ * Los componentes no añaden CSS propio: usan las clases del tema que salen de `tokens.css`.
+ */
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* Anillo de foco común a todos los elementos interactivos: `focus-ring`. */
+@utility focus-ring {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-fg);
+    background-color: var(--color-surface-muted);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Foco visible por defecto con el teclado, aunque el componente no lo defina. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+}

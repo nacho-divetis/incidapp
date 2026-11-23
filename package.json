@@ -18,6 +18,8 @@
     "lint": "eslint . --max-warnings=0",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
+    "storybook": "npm run storybook -w @incidapp/web",
+    "build-storybook": "npm run build-storybook -w @incidapp/web",
     "start": "npm run start -w @incidapp/api",
     "db:generate": "npm run db:generate -w @incidapp/api",
     "db:migrate": "npm run db:migrate -w @incidapp/api",

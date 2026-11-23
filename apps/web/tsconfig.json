@@ -4,7 +4,11 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "types": ["vite/client"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src", "vite.config.ts", "vite.config.test.ts", "vitest.config.ts"]
+  "include": ["src", ".storybook/preview.ts"],
+  "exclude": ["src/components/architecture.test.ts", "src/styles/tokens.test.ts"]
 }
