@@ -37,14 +37,14 @@
 - Notas: `POST /api/auth/login`, `POST /api/auth/logout` y `GET /api/auth/me` según `plan.md`. `@fastify/cookie` (`incidapp_session`, `httpOnly`, `sameSite: 'lax'`, `path: '/'`, `secure: config.enforceHttps`, 7 días) y `@fastify/rate-limit` (`global: false`, solo en login, `max`/`timeWindow` de `config`, `ErrorResponse` `TOO_MANY_REQUESTS` y `Retry-After`). *Hook* global `onRequest` que exige `X-Requested-With` en `/api` para métodos que no son GET/HEAD/OPTIONS (403), registrado antes que las rutas: corre antes que el límite y que la validación. `trustProxy` con `config.trustProxyHops` (nunca `true`). `requireSession` reutilizable con `request.currentUser`. `redact` de `password` en el logger. Variables `TRUST_PROXY_HOPS`, `LOGIN_RATE_LIMIT_MAX` y `LOGIN_RATE_LIMIT_WINDOW_MS` validadas en `config` y documentadas en `.env.example`. Resuelve los pendientes de security-reviewer de T-00.03 (cabecera anti-CSRF y `trustProxy`). Tests con `fastify.inject` de todos los criterios, incluido el log capturado sin la contraseña.
 
 ### T-01.04 · Crear el átomo `Link` y las moléculas `FormField` y `Alert`
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-01.01, T-00.07
 - Paralelizable con: T-01.02, T-01.03
 - Cubre: CA-01.13 (campos con error accesible y región de alerta), CA-01.17 (enlace)
 - Archivos: apps/web/src/components/atoms/Link/…, apps/web/src/components/molecules/{FormField,Alert}/…, índices de nivel
 - Verificación: npm run lint && npm test -w @incidapp/web && npm run build-storybook
-- Notas: skill `componente`, en un worktree de `.worktrees/`. `Link` polimórfico con `as` (sin importar React Router). `FormField` genera los ids y pasa `aria-describedby` y `aria-invalid` al campo hijo. `Alert` con `tone` (info, success, warning, danger) y `role` según el tono. Cada uno con story (estados normal, error, tonos) y test. Sin textos de negocio fijos.
+- Notas: skill `componente`, en un worktree de `.worktrees/`. `Link` polimórfico con `as` (sin importar React Router). `FormField` genera los ids y pasa `aria-describedby` y `aria-invalid` al campo hijo. `Alert` con `tone` (info, success, warning, danger) y `role` según el tono. Cada uno con story (estados normal, error, tonos) y test. Sin textos de negocio fijos. Hecha: `Link` genérico (`LinkProps<E>`, el tipo de `to` sale del componente de `as`) con variantes `default` y `subtle`, y `rel="noopener noreferrer"` con `target="_blank"`. `FormField` usa `cloneElement` sobre un único hijo: le pone `id = htmlFor`, `aria-describedby` (error, ayuda y lo que ya trajera), `aria-invalid` y `aria-required` (no el `required` nativo), y `invalid` solo si el hijo es un componente. `Alert` con el título en `<p>` (no rompe la jerarquía de encabezados) y sin botón de cerrar. Sin dependencias nuevas. Hecha en paralelo con T-01.03, en el worktree `.worktrees/T-01.04`. Revisión: aprobada, 2 hallazgos bajos sin cambios (un hijo de `FormField` que no reenvíe las props pierde la asociación; `ref` con `as` depende del componente). **Para T-01.05:** `LoginForm` pinta el `Alert` danger solo cuando hay `errorMessage` y lleva `noValidate`.
 
 ### T-01.05 · Crear los organismos `LoginForm`, `DemoAccountsPanel` y `AppHeader`
 - Estado: pendiente
