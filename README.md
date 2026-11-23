@@ -11,6 +11,19 @@ Trabajo Fin de Máster del *Máster de Desarrollo con IA*. Todos los datos son *
 - **URL:** https://incidapp.onrender.com
 - La demo está en el plan gratuito de Render: si nadie la ha usado en los últimos minutos, **la primera carga tarda alrededor de un minuto** mientras el servicio despierta.
 
+### Usuarios demo
+
+Un usuario por rol, todos con la contraseña **`Demo2026!`**. La pantalla de inicio de sesión los muestra en el recuadro "Usuarios demo".
+
+| Email | Nombre | Rol | Departamento |
+|---|---|---|---|
+| `admin@incidapp.test` | Elena Ruiz | Admin | ADM |
+| `direccion@incidapp.test` | Javier Ortega | Dirección | DIR |
+| `responsable@incidapp.test` | Carmen Vidal | Responsable | LOG |
+| `usuario@incidapp.test` | Pablo Moreno | Usuario | LOG |
+
+La contraseña es pública **a propósito**: la demo solo contiene datos ficticios (dominio reservado `.test` y nombres inventados) y está pensada para que cualquiera la pruebe con cada rol. Por defecto, tras 10 intentos de inicio de sesión desde una misma IP en 15 minutos, la API responde 429 durante un rato (configurable con `LOGIN_RATE_LIMIT_MAX` y `LOGIN_RATE_LIMIT_WINDOW_MS`).
+
 ## Stack
 
 | Parte | Tecnología |
@@ -32,6 +45,8 @@ npm ci
 npm run dev      # API en http://localhost:3000 y web en http://localhost:5173
 ```
 
+En local también se cargan los [usuarios demo](#usuarios-demo).
+
 ## Comandos
 
 | Comando | Qué hace |
@@ -43,7 +58,7 @@ npm run dev      # API en http://localhost:3000 y web en http://localhost:5173
 | `npm run build` | Build de producción |
 | `npm run db:generate` | Genera una migración a partir del esquema |
 | `npm run db:migrate` | Aplica las migraciones |
-| `npm run db:seed` | Carga los datos iniciales de la empresa ficticia |
+| `npm run db:seed` | Carga los datos iniciales de la empresa ficticia y los usuarios demo |
 
 ## Documentación
 
