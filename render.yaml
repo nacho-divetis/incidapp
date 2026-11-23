@@ -20,6 +20,12 @@ services:
         value: '24'
       - key: NODE_ENV
         value: production
+      # Saltos de proxy de confianza para obtener la IP real del cliente (auditoría y límite de intentos).
+      # Medido en producción el 23/11/2026: cliente → Cloudflare → balanceador de Render → proxy interno → app.
+      # Con 1 salía la IP del proxy interno (10.x) y con 2, la de Cloudflare; con 3, la del cliente.
+      # Una IP falseada en X-Forwarded-For queda a la izquierda y no se usa. No subirlo sin medirlo.
+      - key: TRUST_PROXY_HOPS
+        value: '3'
       # Cadena de conexión de Neon. El valor se pega en el panel de Render, nunca en el repositorio.
       - key: DATABASE_URL
         sync: false
