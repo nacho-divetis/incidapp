@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "vite.config.ts",
+    "vite.config.test.ts",
+    "vitest.config.ts",
+    ".storybook/main.ts",
+    "src/components/architecture.test.ts",
+    "src/styles/tokens.test.ts"
+  ]
+}
