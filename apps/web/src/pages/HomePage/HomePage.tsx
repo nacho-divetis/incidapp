@@ -1,8 +1,14 @@
+import { Heading, Text } from '../../components/atoms';
+import { useCurrentUser } from '../../queries/auth';
 import { useHealth } from '../../queries/health';
 
-/** Página inicial: nombre de la aplicación y estado de la conexión con la API. */
+/**
+ * Página inicial (`/`, con sesión): nombre de la aplicación, saludo al usuario y estado de la
+ * conexión con la API. Va dentro de `ProtectedLayout`, que ya pone el `<main>` de `AppLayout`.
+ */
 export function HomePage() {
   const health = useHealth();
+  const { data: user } = useCurrentUser();
 
   let apiStatus: string;
   if (health.isPending) apiStatus = 'Comprobando la conexión…';
@@ -10,12 +16,13 @@ export function HomePage() {
   else apiStatus = 'Sin conexión';
 
   return (
-    <main>
-      <h1>IncidApp</h1>
-      <p role="status" aria-busy={health.isPending}>
+    <>
+      <Heading level={1}>IncidApp</Heading>
+      {user && <Text className="mt-2">Hola, {user.name}.</Text>}
+      <Text role="status" aria-busy={health.isPending} className="mt-4">
         Estado de la API: {apiStatus}
-      </p>
-      {health.data?.status === 'ok' && <p>Versión {health.data.version}</p>}
-    </main>
+      </Text>
+      {health.data?.status === 'ok' && <Text variant="small">Versión {health.data.version}</Text>}
+    </>
   );
 }
