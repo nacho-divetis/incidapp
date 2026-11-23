@@ -77,7 +77,7 @@
 | Átomo | `Badge` | nuevo | `tone`: neutral · info · success · warning · danger · primary. Lo usarán `StatusBadge` y `PriorityBadge` (F03) |
 | Átomo | `Spinner` | nuevo | `size`; `role="status"` con texto accesible por props |
 | Átomo | `Heading`, `Text` | nuevo | `Heading`: `level` 1–4 (y `as` para separar semántica y tamaño). `Text`: `variant` body · muted · small |
-| Átomo | `Icon` | nuevo | Envuelve `lucide-react` (MIT): `name`, `size`, `aria-hidden` salvo que reciba `label` |
+| Átomo | `Icon` | nuevo | Envuelve `lucide-react` (ISC): `name`, `size`, `aria-hidden` salvo que reciba `label` |
 | Plantilla | `AppLayout` | nuevo | *Slots* `header`, `nav`, `children`; enlace "Saltar al contenido" (texto por prop con ese valor por defecto) |
 | Plantilla | `AuthLayout` | nuevo | *Slots* `title`, `children`; panel centrado |
 
