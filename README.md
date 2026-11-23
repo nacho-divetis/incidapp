@@ -8,7 +8,7 @@ Trabajo Fin de Máster del *Máster de Desarrollo con IA*. Todos los datos son *
 
 ## Demo
 
-- **URL:** pendiente del primer despliegue.
+- **URL:** https://incidapp.onrender.com
 - La demo está en el plan gratuito de Render: si nadie la ha usado en los últimos minutos, **la primera carga tarda alrededor de un minuto** mientras el servicio despierta.
 
 ## Stack

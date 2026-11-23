@@ -68,13 +68,13 @@ Un Admin no puede desactivarse a sí mismo ni quitarse el rol de Admin, para que
 
 El servidor ignora o rechaza en las peticiones los campos que decide él: `role` (salvo en la gestión de usuarios por un Admin), `createdBy`, `code`, `status` (solo cambia a través de las transiciones), `departmentId` (lo fija el tipo), fechas de creación, resolución y cierre, y el autor de eventos y comentarios.
 
-## Aclaraciones pendientes de validar
+## Aclaraciones confirmadas (23/11/2026)
 
-Son precisiones añadidas el 23/11 a la matriz de la definición del proyecto. Se confirman (o se retiran) al aprobar la spec de F02:
+Precisiones a la matriz de la definición del proyecto, confirmadas por el usuario:
 
 1. Solo se puede asignar a usuarios **activos** del departamento propietario.
-2. Un Responsable, fuera de sus departamentos, tiene los permisos de Usuario sobre lo que ha creado o tiene asignado.
-3. Un Admin no puede desactivarse ni quitarse el rol de Admin a sí mismo.
+2. Un Responsable, fuera de sus departamentos, tiene los permisos de Usuario sobre lo que ha creado o tiene asignado (ver, comentar, adjuntar y transiciones operativas); no puede rechazar, cerrar, reabrir ni asignar.
+3. Un Admin no puede desactivarse ni quitarse el rol de Admin a sí mismo: la API responde **409** con un mensaje en español.
 
 ## Cómo se prueba
 
