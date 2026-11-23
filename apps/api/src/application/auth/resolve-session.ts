@@ -1,5 +1,6 @@
 import type { CurrentUser } from '@incidapp/shared';
 import { isSessionExpired } from '../../domain/auth/session';
+import { globalActionsFor } from '../authorization/authorization-policy';
 import { UnauthorizedError } from '../errors';
 import type { Clock } from '../ports/clock';
 import type { SessionRepository } from '../ports/session-repository';
@@ -23,7 +24,8 @@ export type ResolveSession = (query: ResolveSessionQuery) => Promise<CurrentUser
 /**
  * Devuelve el usuario de una sesión válida (CA-01.5). Sin sesión → `UnauthorizedError`. Una sesión
  * caducada se borra; si el usuario está desactivado o ya no existe, se borran todas sus sesiones
- * (CA-01.6, `docs/permisos.md`: "usuario desactivado").
+ * (CA-01.6, `docs/permisos.md`: "usuario desactivado"). El usuario se lee de la BD en cada petición,
+ * así que un cambio de rol cambia ya sus `allowedActions` en la siguiente (CA-02.4).
  */
 export const makeResolveSession =
   ({ users, sessions, sessionTokens, clock }: ResolveSessionDeps): ResolveSession =>
@@ -44,5 +46,5 @@ export const makeResolveSession =
       throw new UnauthorizedError();
     }
 
-    return record.user;
+    return { ...record.user, allowedActions: globalActionsFor(record.user) };
   };

@@ -57,7 +57,25 @@ describe('resolveSession', () => {
       name: user.name,
       role: 'MANAGER',
       departments: user.departments,
+      allowedActions: ['createIncident'],
     });
+  });
+
+  it('CA-02.4: un cambio de rol se ve en la siguiente resolución, sin cerrar la sesión', async () => {
+    await openSession('token-a');
+    await resolveSession({ token: 'token-a' });
+
+    users.users[0] = { ...user, role: 'ADMIN' };
+    const current = await resolveSession({ token: 'token-a' });
+
+    expect(current.role).toBe('ADMIN');
+    expect(current.allowedActions).toEqual([
+      'createIncident',
+      'manageUsers',
+      'viewAudit',
+      'viewDashboard',
+    ]);
+    expect(sessions.sessions.size).toBe(1);
   });
 
   it('CA-01.5: sin token lanza UnauthorizedError', async () => {

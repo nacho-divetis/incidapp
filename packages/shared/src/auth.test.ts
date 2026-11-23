@@ -140,10 +140,15 @@ describe('CurrentUser', () => {
         name: 'Administración y Finanzas',
       },
     ],
+    allowedActions: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],
   };
 
   it('CA-01.1: acepta el usuario actual con su rol y sus departamentos', () => {
     expect(CurrentUser.parse(user)).toEqual(user);
+  });
+
+  it('CA-02.4: acepta una lista vacía de acciones globales', () => {
+    expect(CurrentUser.parse({ ...user, allowedActions: [] }).allowedActions).toEqual([]);
   });
 
   it('CA-01.1: descarta los datos internos como `passwordHash` o `active`', () => {
@@ -158,6 +163,8 @@ describe('CurrentUser', () => {
     ['un id que no es UUID', { ...user, id: '1' }],
     ['sin departamentos', { ...user, departments: undefined }],
     ['un nombre vacío', { ...user, name: '' }],
+    ['sin acciones permitidas', { ...user, allowedActions: undefined }],
+    ['una acción global desconocida', { ...user, allowedActions: ['deleteEverything'] }],
   ])('rechaza un usuario con %s', (_case, body) => {
     expect(CurrentUser.safeParse(body).success).toBe(false);
   });

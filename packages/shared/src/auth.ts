@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GlobalAction } from './authorization';
 
 /** Roles de IncidApp (`docs/glosario.md`): Admin, Dirección, Responsable y Usuario. */
 export const Role = z.enum(['ADMIN', 'DIRECTOR', 'MANAGER', 'USER']);
@@ -15,6 +16,8 @@ export type DepartmentSummary = z.infer<typeof DepartmentSummary>;
 /**
  * Usuario con sesión: respuesta de `POST /api/auth/login` y `GET /api/auth/me`.
  * Nunca incluye datos internos (`passwordHash`, `active`…): los campos extra se descartan.
+ * `allowedActions` son sus acciones globales, calculadas por la `AuthorizationPolicy` de la API
+ * (CA-02.4): la web decide con ellas qué mostrar, sin mirar el rol.
  */
 export const CurrentUser = z.object({
   id: z.uuid(),
@@ -22,6 +25,7 @@ export const CurrentUser = z.object({
   name: z.string().min(1),
   role: Role,
   departments: z.array(DepartmentSummary),
+  allowedActions: z.array(GlobalAction),
 });
 export type CurrentUser = z.infer<typeof CurrentUser>;
 

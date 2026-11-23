@@ -13,6 +13,7 @@ const USER: CurrentUser = {
   name: 'Pablo Moreno',
   role: 'USER',
   departments: [],
+  allowedActions: ['createIncident'],
 };
 
 let app: FastifyInstance;

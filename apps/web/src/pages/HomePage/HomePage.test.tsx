@@ -19,6 +19,7 @@ const DEMO_USER = {
   name: 'Elena Ruiz',
   role: 'ADMIN',
   departments: [],
+  allowedActions: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],
 } as const;
 
 function renderHomePage() {

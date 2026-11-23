@@ -186,13 +186,21 @@ describe('POST /api/auth/login', () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['departments', 'email', 'id', 'name', 'role']);
+    expect(Object.keys(body).sort()).toEqual([
+      'allowedActions',
+      'departments',
+      'email',
+      'id',
+      'name',
+      'role',
+    ]);
     expect(CurrentUser.parse(body)).toEqual({
       id: await userIdOf(ADMIN.email),
       email: ADMIN.email,
       name: ADMIN.name,
       role: 'ADMIN',
       departments: [{ id: expect.any(String), code: 'ADM', name: 'Administración y Finanzas' }],
+      allowedActions: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],
     });
     expect(response.body).not.toMatch(/argon2|password|hash|active/i);
     expect(response.headers['cache-control']).toBe('no-store');
@@ -416,8 +424,51 @@ describe('GET /api/auth/me', () => {
       name: USER.name,
       role: 'USER',
       departments: [{ id: expect.any(String), code: 'LOG', name: 'Logística y Almacén' }],
+      allowedActions: ['createIncident'],
     });
     expect(response.headers['cache-control']).toBe('no-store');
+  });
+
+  it.each([
+    ['ADMIN', ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard']],
+    ['DIRECTOR', ['viewDashboard']],
+    ['MANAGER', ['createIncident']],
+    ['USER', ['createIncident']],
+  ] as const)(
+    'CA-02.4: login y me del usuario demo %s incluyen sus acciones globales %j',
+    async (role, expected) => {
+      const { app } = await setup();
+      const demo = DEMO_USERS.find((user) => user.role === role)!;
+
+      const login = await postLogin(app, { email: demo.email, password: DEMO_PASSWORD });
+      const token = sessionCookie(login)?.value;
+      const me = await getMe(app, token);
+
+      expect(CurrentUser.parse(login.json()).allowedActions).toEqual(expected);
+      expect(CurrentUser.parse(me.json()).allowedActions).toEqual(expected);
+    },
+  );
+
+  it('CA-02.4: si cambia el rol en la BD, el siguiente me devuelve el rol y las acciones nuevas sin cerrar la sesión', async () => {
+    const { app } = await setup();
+    const token = await loginAs(app, USER.email);
+    expect(CurrentUser.parse((await getMe(app, token)).json()).allowedActions).toEqual([
+      'createIncident',
+    ]);
+
+    try {
+      await database.db.update(users).set({ role: 'DIRECTOR' }).where(eq(users.email, USER.email));
+
+      const response = await getMe(app, token);
+
+      expect(response.statusCode).toBe(200);
+      const current = CurrentUser.parse(response.json());
+      expect(current.role).toBe('DIRECTOR');
+      expect(current.allowedActions).toEqual(['viewDashboard']);
+      expect(await sessionsOf(USER.email)).toHaveLength(1);
+    } finally {
+      await database.db.update(users).set({ role: USER.role }).where(eq(users.email, USER.email));
+    }
   });
 
   it.each([

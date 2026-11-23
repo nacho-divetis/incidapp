@@ -37,6 +37,7 @@ export const DEMO_ADMIN: CurrentUser = {
   departments: [
     { id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d', code: 'ADM', name: 'Administración' },
   ],
+  allowedActions: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],
 };
 
 /**
