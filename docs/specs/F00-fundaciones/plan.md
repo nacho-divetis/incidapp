@@ -107,14 +107,7 @@
 - **Windows (local) frente a Linux (CI y Render)**: finales de línea LF por `.gitattributes`, rutas con `node:path` y nombres de archivo con las mayúsculas exactas (la CI los detecta).
 - **Compatibilidad entre Zod 4 y el *type provider* de Fastify** → se fija la versión que lo soporte. Si da problemas, se valida con `schema.parse` en la ruta, sin cambiar el contrato.
 - **Tailwind 4 en Storybook** → Storybook reutiliza `vite.config.ts`. Se comprueba con `build-storybook` en la propia tarea.
-- **ADR nuevos** (los crea T-00.01 con la skill `adr`):
-  - `001-monolito-modular-clean-architecture`
-  - `002-pglite-local-neon-produccion`
-  - `003-despliegue-render-neon-coste-cero` (migraciones al arrancar y despliegue solo con la CI en verde)
-  - `004-sesion-en-bd-con-cookie`
-  - `005-adjuntos-en-bytea`
-  - `006-atomic-design-storybook`
-  - `007-contrato-compartido-zod`
+- **ADR nuevos** (los crea T-00.01 con la skill `adr`): 001 monolito modular · 002 Clean Architecture · 003 sesión en BD · 004 PGlite en local y Neon en producción · 005 adjuntos en `bytea` · 006 despliegue con coste cero · 007 contrato compartido con Zod · 008 atomic design + Storybook · 009 permisos en el servidor (`allowedActions`).
 
 ## Avance del desglose (para `tasks.md`)
 

@@ -7,17 +7,17 @@
 > La instalación de dependencias pide confirmación al usuario; cada tarea justifica en su resumen las dependencias que añade.
 
 ### T-00.01 · Escribir la documentación de base y los ADR iniciales
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: T-00.02, T-00.03, T-00.04
 - Cubre: CA-00.14
-- Archivos: docs/requisitos.md, docs/permisos.md, docs/glosario.md, docs/adr/001…007-*.md, README.md
+- Archivos: docs/requisitos.md, docs/permisos.md, docs/glosario.md, docs/adr/001…009-*.md + docs/adr/README.md, README.md
 - Verificación: revisión de `docs/` y del README; `grep -rniE "\.claude|AGENTS\.md|CLAUDE\.md" README.md docs/` no devuelve nada fuera de `docs/specs/`
-- Notas: fuentes = documentos de definición v3 y v4 (la v4 prevalece) y los recortes del 23/11. `requisitos.md` fija los IDs de RF y RNF (incluidos RNF-01…06, que cita la spec de F00) con MoSCoW e historias. `permisos.md` recoge la matriz de la v4 (apartado 2.2) y las transiciones (apartado 2.1), con el cuadro de mando **solo para Admin y Dirección** y "visibles" = sus departamentos + creadas + asignadas. ADR con la skill `adr` (lista en `plan.md`). README mínimo: qué es, stack, cómo arrancar en local, URL de la demo (pendiente hasta T-00.05) y aviso de que Render tarda en despertar.
+- Notas: fuentes = documentos de definición v3 y v4 (la v4 prevalece) y los recortes del 23/11. `requisitos.md` fija los IDs de RF y RNF (incluidos RNF-01…06, que cita la spec de F00) con MoSCoW e historias. `permisos.md` recoge la matriz de la v4 (apartado 2.2) y las transiciones (apartado 2.1), con el cuadro de mando **solo para Admin y Dirección** y "visibles" = sus departamentos + creadas + asignadas. ADR con la skill `adr` (lista en `plan.md`; se siguen los 9 previstos por la skill). README mínimo: qué es, stack, cómo arrancar en local, URL de la demo (pendiente hasta T-00.05) y aviso de que Render tarda en despertar. Revisión: sin hallazgos altos; las 3 precisiones nuevas de la matriz quedan en `permisos.md` como "Aclaraciones pendientes de validar" en la spec de F02.
 
 ### T-00.02 · Montar el monorepo con el contrato base, las herramientas de calidad y la CI
-- Estado: pendiente
+- Estado: en curso
 - Agente: backend-dev · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: T-00.01
