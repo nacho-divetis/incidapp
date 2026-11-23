@@ -63,6 +63,7 @@ describe('apiGet', () => {
   it.each([
     [404, 'NOT_FOUND'],
     [403, 'FORBIDDEN'],
+    [429, 'TOO_MANY_REQUESTS'],
     [502, 'INTERNAL'],
   ] as const)(
     'si el error %i no trae un `ErrorResponse`, lanza un `ApiError` %s con un mensaje genérico',

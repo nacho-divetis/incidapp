@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { ErrorCode, ErrorResponse } from './index';
 
 describe('ErrorResponse', () => {
-  it('CA-00.5: define los códigos de error del contrato', () => {
+  it('CA-00.5, CA-01.8: define los códigos de error del contrato, incluido el del límite de intentos', () => {
     expect(ErrorCode.options).toEqual([
       'VALIDATION',
       'UNAUTHORIZED',
       'FORBIDDEN',
       'NOT_FOUND',
       'CONFLICT',
+      'TOO_MANY_REQUESTS',
       'INTERNAL',
     ]);
   });
