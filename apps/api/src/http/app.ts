@@ -23,6 +23,8 @@ import { errorHandler } from './error-handler';
 import { authRoutes, type LoginRateLimitSettings } from './routes/auth';
 import { departmentsRoutes, type DepartmentsDeps } from './routes/departments';
 import { healthRoutes } from './routes/health';
+import { incidentTypesRoutes, type IncidentTypesDeps } from './routes/incident-types';
+import { incidentsRoutes, type IncidentsDeps } from './routes/incidents';
 import { usersRoutes, type UserAdminDeps } from './routes/users';
 
 /** Casos de uso de la autenticación y límite de intentos del login. */
@@ -40,6 +42,10 @@ export interface AppDeps {
   users: UserAdminDeps;
   /** Catálogo de departamentos. */
   departments: DepartmentsDeps;
+  /** Catálogo de tipos de incidencia. */
+  incidentTypes: IncidentTypesDeps;
+  /** Casos de uso de las incidencias. */
+  incidents: IncidentsDeps;
   /** Carpeta del build de la web. Si no existe su `index.html` (desarrollo), no se sirve la SPA. */
   webDistDir?: string;
   /** Opciones del logger (pino). Por defecto, sin log (tests). */
@@ -134,6 +140,12 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const { resolveSession } = deps.auth;
   await app.register(usersRoutes({ ...deps.users, resolveSession }), { prefix: API_PREFIX });
   await app.register(departmentsRoutes({ ...deps.departments, resolveSession }), {
+    prefix: API_PREFIX,
+  });
+  await app.register(incidentTypesRoutes({ ...deps.incidentTypes, resolveSession }), {
+    prefix: API_PREFIX,
+  });
+  await app.register(incidentsRoutes({ ...deps.incidents, resolveSession }), {
     prefix: API_PREFIX,
   });
 

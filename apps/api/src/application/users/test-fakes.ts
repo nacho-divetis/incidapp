@@ -1,5 +1,5 @@
 // Fakes en memoria de la gestión de usuarios, solo para los tests de aplicación.
-import type { CurrentUser, DepartmentSummary } from '@incidapp/shared';
+import type { CurrentUser, DepartmentSummary, UserSummary } from '@incidapp/shared';
 import {
   FakePasswordHasher,
   FixedClock,
@@ -110,6 +110,13 @@ export class InMemoryUserAdmins implements UserAdminRepository {
     this.get(id).passwordHash = passwordHash;
   }
 
+  async listActiveByDepartment(departmentId: string): Promise<UserSummary[]> {
+    return this.users
+      .filter((user) => user.active && user.departments.some((d) => d.id === departmentId))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(({ id, name }) => ({ id, name }));
+  }
+
   private get(id: string): StoredUser {
     const user = this.users.find((candidate) => candidate.id === id);
     if (!user) throw new Error(`Usuario ${id} inexistente en el fake`);
@@ -135,6 +142,17 @@ export class FailingAuditLog extends InMemoryAuditLog {
 }
 
 /**
+ * Repositorio que no existe en este mundo de pruebas: cualquier llamada falla con un mensaje claro.
+ */
+export function unavailable<T extends object>(name: string): T {
+  return new Proxy({} as T, {
+    get: (_target, method) => () => {
+      throw new Error(`${name}.${String(method)} no se usa en estos tests.`);
+    },
+  });
+}
+
+/**
  * Unidad de trabajo en memoria con la semántica de una transacción: si `work` lanza, restaura los
  * usuarios, las sesiones y la auditoría como estaban antes.
  */
@@ -153,7 +171,14 @@ export class InMemoryUnitOfWork implements UnitOfWork {
     const sessions = new Map(this.sessions.sessions);
     const entries = [...this.auditLog.entries];
     try {
-      return await work({ users: this.users, sessions: this.sessions, auditLog: this.auditLog });
+      return await work({
+        users: this.users,
+        sessions: this.sessions,
+        auditLog: this.auditLog,
+        incidents: unavailable('incidents'),
+        incidentCodes: unavailable('incidentCodes'),
+        incidentEvents: unavailable('incidentEvents'),
+      });
     } catch (error) {
       this.users.users.splice(0, this.users.users.length, ...users);
       this.sessions.sessions.clear();

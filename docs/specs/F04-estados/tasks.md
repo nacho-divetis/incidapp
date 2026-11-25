@@ -16,7 +16,7 @@
 - Notas: según `plan.md`: `TransitionInput` (`to` de `Status`, `comment` con *trim* ≤ 2000, vacío → `undefined`), `IncidentEvent` (unión discriminada por `type` con los datos de `CREATED`, `UPDATED`, `ASSIGNED` y `STATUS_CHANGED`) e `IncidentEventList`. **No** cambia la forma de `Incident` (F03 ya trae `allowedTransitions`). Máquina de estados en TDD: tabla `it.each` de los 49 pares (estado actual × destino) en la que cada fila cita la de **Transiciones de estado** de `docs/permisos.md`; `findTransition` lanza `InvalidTransitionError` (error de dominio tipado) para cualquier par que no esté en la tabla; `transitionsFrom`. TypeScript puro: como se hace antes que T-03.02, crea `IncidentStatus` en `apps/api/src/domain/incidents/incident.ts` con su test de coincidencia con `Status` (T-03.02 añade ahí `IncidentPriority`). Sin comentarios sueltos: ni `CommentInput` ni `COMMENTED`.
 
 ### T-04.02 · Implementar el cambio de estado, las transiciones permitidas y el historial en la API
-- Estado: pendiente
+- Estado: hecha
 - Agente: backend-dev · Revisores: code-reviewer, security-reviewer
 - Depende de: T-03.02, T-04.01
 - Paralelizable con: T-03.04, T-04.03

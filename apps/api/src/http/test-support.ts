@@ -15,8 +15,27 @@ export const unusedAuth: AuthDeps = {
   loginRateLimit: { max: 1000, timeWindowMs: 60_000 },
 };
 
-/** Gestión de usuarios y catálogo de departamentos para los tests que no los usan. */
-export const unusedAdmin: Pick<AppDeps, 'users' | 'departments'> = {
+/** Incidencias y catálogo de tipos para los tests que no los usan. */
+export const unusedIncidents: Pick<AppDeps, 'incidents' | 'incidentTypes'> = {
+  incidents: {
+    listIncidents: unused('listIncidents'),
+    getIncident: unused('getIncident'),
+    createIncident: unused('createIncident'),
+    updateIncident: unused('updateIncident'),
+    listAssignees: unused('listAssignees'),
+    assignIncident: unused('assignIncident'),
+    changeIncidentStatus: unused('changeIncidentStatus'),
+    listIncidentEvents: unused('listIncidentEvents'),
+  },
+  incidentTypes: { listIncidentTypes: unused('listIncidentTypes') },
+};
+
+/**
+ * Gestión de usuarios, catálogo de departamentos e incidencias para los tests que no los usan
+ * (todo salvo la autenticación y la salud).
+ */
+export const unusedAdmin: Pick<AppDeps, 'users' | 'departments' | 'incidents' | 'incidentTypes'> = {
+  ...unusedIncidents,
   users: {
     listUsers: unused('listUsers'),
     getUser: unused('getUser'),
@@ -27,6 +46,14 @@ export const unusedAdmin: Pick<AppDeps, 'users' | 'departments'> = {
   },
   departments: { listDepartments: unused('listDepartments') },
 };
+
+/** Cuerpo válido de `POST /api/incidents` para un tipo dado (ayuda de la matriz de CA-03.11). */
+export const validIncidentBody = (typeId: string, title = 'Incidencia de prueba') => ({
+  title,
+  description: 'Descripción de la incidencia de prueba.',
+  typeId,
+  priority: 'MEDIUM',
+});
 
 // --- Cliente para las pruebas de autorización (T-02.04) ---------------------------------------------
 

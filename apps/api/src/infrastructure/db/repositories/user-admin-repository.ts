@@ -1,5 +1,5 @@
 import type { DepartmentSummary } from '@incidapp/shared';
-import { asc, eq, inArray, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, type SQL } from 'drizzle-orm';
 import { ConflictError } from '../../../application/errors';
 import type {
   ManagedUser,
@@ -8,12 +8,11 @@ import type {
 import { EMAIL_TAKEN_MESSAGE } from '../../../application/users/user-messages';
 import type { Database } from '../client';
 import { departments, userDepartments, users } from '../schema';
+import { sortByName } from './spanish-order';
+import { isUuid } from './uuid';
 
 /** Código de Postgres (y PGlite) para la violación de un índice único. */
 const UNIQUE_VIOLATION = '23505';
-
-/** UUID en su forma textual: lo que Postgres acepta en una columna `uuid`. */
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** ¿Es (o envuelve, como `DrizzleQueryError`) una violación de un índice único? */
 function isUniqueViolation(error: unknown): boolean {
@@ -87,7 +86,7 @@ export function createDrizzleUserAdminRepository(db: Database): UserAdminReposit
 
   async function findById(id: string): Promise<ManagedUser | null> {
     // Un id que no es un UUID no existe (Postgres rechazaría la consulta): 404, no 500 (CA-02.6).
-    if (!UUID_PATTERN.test(id)) return null;
+    if (!isUuid(id)) return null;
     const [user] = await select(eq(users.id, id));
     return user ?? null;
   }
@@ -151,6 +150,15 @@ export function createDrizzleUserAdminRepository(db: Database): UserAdminReposit
 
     async setPasswordHash(id, passwordHash) {
       await db.update(users).set({ passwordHash }).where(eq(users.id, id));
+    },
+
+    async listActiveByDepartment(departmentId) {
+      const rows = await db
+        .select({ id: users.id, name: users.name })
+        .from(users)
+        .innerJoin(userDepartments, eq(userDepartments.userId, users.id))
+        .where(and(eq(userDepartments.departmentId, departmentId), eq(users.active, true)));
+      return sortByName(rows);
     },
   };
 }

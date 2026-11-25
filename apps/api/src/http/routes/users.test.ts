@@ -38,6 +38,7 @@ import { DEPARTMENTS, seedDatabase } from '../../infrastructure/db/seed';
 import { createTestDatabase } from '../../infrastructure/db/test-database';
 import { createDrizzleUnitOfWork } from '../../infrastructure/db/unit-of-work';
 import { buildApp } from '../app';
+import { unusedIncidents } from '../test-support';
 
 const T0 = new Date('2026-11-23T10:00:00.000Z');
 const CSRF = { 'x-requested-with': 'fetch' };
@@ -124,6 +125,7 @@ beforeEach(async () => {
       resetUserPassword: makeResetUserPassword(adminDeps),
     },
     departments: { listDepartments: makeListDepartments(adminDeps) },
+    ...unusedIncidents,
     enforceHttps: false,
     logger: { level: 'trace', stream: logStream },
   });
