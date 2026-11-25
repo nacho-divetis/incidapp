@@ -24,6 +24,8 @@ export const unusedIncidents: Pick<AppDeps, 'incidents' | 'incidentTypes'> = {
     updateIncident: unused('updateIncident'),
     listAssignees: unused('listAssignees'),
     assignIncident: unused('assignIncident'),
+    changeIncidentStatus: unused('changeIncidentStatus'),
+    listIncidentEvents: unused('listIncidentEvents'),
   },
   incidentTypes: { listIncidentTypes: unused('listIncidentTypes') },
 };

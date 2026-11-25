@@ -3,6 +3,7 @@ import type { IncidentTypeSummary, UserSummary } from '@incidapp/shared';
 import { FixedClock } from '../auth/test-fakes';
 import type { IncidentAccessFacts } from '../authorization/authorization-policy';
 import type { IncidentCodeCounter } from '../ports/incident-code-counter';
+import type { IncidentEventReader, IncidentEventRecord } from '../ports/incident-event-reader';
 import type { IncidentEventWriter, NewIncidentEvent } from '../ports/incident-event-writer';
 import type {
   IncidentChanges,
@@ -198,6 +199,9 @@ export class InMemoryIncidents implements IncidentRepository {
     if (changes.priority !== undefined) row.priority = changes.priority;
     if (changes.dueDate !== undefined) row.dueDate = changes.dueDate;
     if (changes.assignedToId !== undefined) row.assignedToId = changes.assignedToId;
+    if (changes.status !== undefined) row.status = changes.status;
+    if (changes.resolvedAt !== undefined) row.resolvedAt = changes.resolvedAt;
+    if (changes.closedAt !== undefined) row.closedAt = changes.closedAt;
     row.updatedAt = changes.updatedAt;
     return this.toRecord(row);
   }
@@ -279,6 +283,35 @@ export class InMemoryIncidentEvents implements IncidentEventWriter {
   }
 }
 
+/**
+ * Lectura del historial sobre lo que ha escrito `InMemoryIncidentEvents` (lee el de la unidad de
+ * trabajo en cada llamada, por si un test lo sustituye). Ids por orden de inserción.
+ */
+export class InMemoryIncidentEventReader implements IncidentEventReader {
+  constructor(
+    private readonly unitOfWork: InMemoryIncidentUnitOfWork,
+    private readonly users: InMemoryUserAdmins,
+  ) {}
+
+  async listByIncident(incidentId: string): Promise<IncidentEventRecord[]> {
+    return this.unitOfWork.incidentEvents.events
+      .map((event, index) => ({
+        event,
+        id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '6')}`,
+      }))
+      .filter(({ event }) => event.incidentId === incidentId)
+      .sort(
+        (a, b) =>
+          a.event.createdAt.getTime() - b.event.createdAt.getTime() || a.id.localeCompare(b.id),
+      )
+      .map(({ event: { incidentId: _incidentId, actorId, ...payload }, id }) => {
+        const actor = this.users.users.find((user) => user.id === actorId);
+        if (!actor) throw new Error(`Usuario ${actorId} inexistente en el fake`);
+        return { ...payload, id, actor: { id: actor.id, name: actor.name } };
+      });
+  }
+}
+
 /** Historial que falla al insertar: para comprobar que la unidad de trabajo revierte. */
 export class FailingIncidentEvents extends InMemoryIncidentEvents {
   override async append(_event: NewIncidentEvent): Promise<void> {
@@ -346,6 +379,7 @@ export function createIncidentWorld() {
     incidentCodes,
     incidentEvents,
   );
+  const incidentEventReader = new InMemoryIncidentEventReader(unitOfWork, users);
   const clock = new FixedClock(NOW);
   return {
     departments,
@@ -354,6 +388,7 @@ export function createIncidentWorld() {
     incidents,
     incidentCodes,
     incidentEvents,
+    incidentEventReader,
     unitOfWork,
     clock,
   };

@@ -2,10 +2,12 @@
 // `AuthorizationPolicy`; aquí solo se traduce a errores y a la respuesta.
 import {
   IncidentAllowedAction,
+  type AllowedTransition,
   type CurrentUser,
   type Incident,
   type IncidentListItem,
 } from '@incidapp/shared';
+import { transitionsFrom, type StatusTransition } from '../../domain/incidents/status-machine';
 import {
   actorOf,
   canOnIncident,
@@ -71,15 +73,46 @@ export async function lockIncidentForAction(
   return authorizeOnIncident(actor, await incidents.findByIdForUpdate(id), action);
 }
 
+/** Acción de la `AuthorizationPolicy` que corresponde al tipo de una transición (CA-02.2). */
+export const transitionActionOf = (transition: Pick<StatusTransition, 'kind'>): IncidentAction =>
+  transition.kind === 'operational' ? 'operationalTransition' : 'managementTransition';
+
+/**
+ * Exige que el actor pueda hacer `action` sobre una incidencia que ya ve (403 si no). Para las
+ * reglas que se comprueban después del 404 y de otra regla, como el 409 de las transiciones.
+ */
+export function assertCanOnIncident(
+  actor: CurrentUser,
+  incident: IncidentRecord,
+  action: IncidentAction,
+): void {
+  authorize({
+    visible: true,
+    allowed: canOnIncident(actorOf(actor), accessFactsOf(incident), action),
+  });
+}
+
+/**
+ * Transiciones que existen desde el estado actual (máquina de estados) y que la política permite al
+ * actor por su tipo (CA-04.4). Dirección y cualquier actor sobre una RECHAZADA: ninguna.
+ */
+function allowedTransitionsOf(actor: CurrentUser, incident: IncidentRecord): AllowedTransition[] {
+  const who = actorOf(actor);
+  const facts = accessFactsOf(incident);
+  return transitionsFrom(incident.status)
+    .filter((transition) => canOnIncident(who, facts, transitionActionOf(transition)))
+    .map(({ to, requiresComment }) => ({ to, requiresComment }));
+}
+
 /** Solo quien tiene la acción global `createIncident` crea incidencias (CA-03.5): si no, 403. */
 export function assertCanCreateIncident(actor: Pick<CurrentUser, 'role'>): void {
   authorize({ visible: true, allowed: globalActionsFor(actor).includes('createIncident') });
 }
 
 /**
- * Único sitio que construye el `Incident` de la API (detalle y respuesta de las mutaciones), con
- * las `allowedActions` del actor filtradas a las que expone el contrato. `allowedTransitions` la
- * rellena F04 aquí mismo.
+ * Único sitio que construye el `Incident` de la API (detalle y respuesta de las mutaciones de F03 y
+ * F04), con las `allowedActions` del actor filtradas a las que expone el contrato y sus
+ * `allowedTransitions` (CA-04.4).
  */
 export function presentIncident(actor: CurrentUser, incident: IncidentRecord): Incident {
   const actions = incidentActionsFor(actorOf(actor), accessFactsOf(incident));
@@ -91,7 +124,7 @@ export function presentIncident(actor: CurrentUser, incident: IncidentRecord): I
     resolvedAt: incident.resolvedAt?.toISOString() ?? null,
     closedAt: incident.closedAt?.toISOString() ?? null,
     allowedActions: IncidentAllowedAction.options.filter((action) => actions.includes(action)),
-    allowedTransitions: [],
+    allowedTransitions: allowedTransitionsOf(actor, incident),
   };
 }
 

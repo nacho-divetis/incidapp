@@ -56,9 +56,9 @@ describe('createIncident', () => {
       updatedAt: NOW.toISOString(),
       resolvedAt: null,
       closedAt: null,
-      // Usuario creador de una ABIERTA: puede editarla, no asignarla.
+      // Usuario creador de una ABIERTA: puede editarla y empezarla, no asignarla ni rechazarla.
       allowedActions: ['update'],
-      allowedTransitions: [],
+      allowedTransitions: [{ to: 'IN_PROGRESS', requiresComment: false }],
     });
     expect(() => Incident.parse(incident)).not.toThrow();
   });

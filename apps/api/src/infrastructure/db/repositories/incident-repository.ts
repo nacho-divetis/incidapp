@@ -174,6 +174,9 @@ export function createDrizzleIncidentRepository(db: Database): IncidentRepositor
           priority: changes.priority,
           dueDate: changes.dueDate,
           assignedTo: changes.assignedToId,
+          status: changes.status,
+          resolvedAt: changes.resolvedAt,
+          closedAt: changes.closedAt,
           updatedAt: changes.updatedAt,
         })
         .where(eq(incidents.id, id));

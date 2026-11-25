@@ -5,9 +5,11 @@ import { makeResolveSession } from '../application/auth/resolve-session';
 import { makeListDepartments } from '../application/departments/list-departments';
 import { makeGetHealth, type GetHealth } from '../application/health/get-health';
 import { makeAssignIncident } from '../application/incidents/assign-incident';
+import { makeChangeIncidentStatus } from '../application/incidents/change-incident-status';
 import { makeCreateIncident } from '../application/incidents/create-incident';
 import { makeGetIncident } from '../application/incidents/get-incident';
 import { makeListAssignees } from '../application/incidents/list-assignees';
+import { makeListIncidentEvents } from '../application/incidents/list-incident-events';
 import { makeListIncidentTypes } from '../application/incidents/list-incident-types';
 import { makeListIncidents } from '../application/incidents/list-incidents';
 import { makeUpdateIncident } from '../application/incidents/update-incident';
@@ -25,6 +27,7 @@ import { createDatabase, type DatabaseHandle } from '../infrastructure/db/client
 import { createDatabaseHealth } from '../infrastructure/db/database-health';
 import { createDrizzleAuditLogWriter } from '../infrastructure/db/repositories/audit-log-writer';
 import { createDrizzleDepartmentRepository } from '../infrastructure/db/repositories/department-repository';
+import { createDrizzleIncidentEventReader } from '../infrastructure/db/repositories/incident-event-reader';
 import { createDrizzleIncidentRepository } from '../infrastructure/db/repositories/incident-repository';
 import { createDrizzleIncidentTypeRepository } from '../infrastructure/db/repositories/incident-type-repository';
 import { createDrizzleSessionRepository } from '../infrastructure/db/repositories/session-repository';
@@ -74,6 +77,7 @@ export async function createContainer(config: Config): Promise<Container> {
   const incidentDeps = {
     incidents: createDrizzleIncidentRepository(database.db),
     incidentTypes: createDrizzleIncidentTypeRepository(database.db),
+    incidentEvents: createDrizzleIncidentEventReader(database.db),
     users: userAdminDeps.users,
     unitOfWork: userAdminDeps.unitOfWork,
     clock: systemClock,
@@ -108,6 +112,8 @@ export async function createContainer(config: Config): Promise<Container> {
       updateIncident: makeUpdateIncident(incidentDeps),
       listAssignees: makeListAssignees(incidentDeps),
       assignIncident: makeAssignIncident(incidentDeps),
+      changeIncidentStatus: makeChangeIncidentStatus(incidentDeps),
+      listIncidentEvents: makeListIncidentEvents(incidentDeps),
     },
     close: () => database.close(),
   };

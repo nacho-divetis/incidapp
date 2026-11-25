@@ -194,6 +194,53 @@ describe('createDrizzleIncidentRepository', () => {
     expect((await repo.update(created.id, { dueDate: null, updatedAt: later })).dueDate).toBeNull();
   });
 
+  it('CA-04.2: update cambia el estado y guarda resolvedAt y closedAt sin tocar el resto', async () => {
+    const repo = createDrizzleIncidentRepository(handle.db);
+    const created = await create('TRANSPORT', user.USER.id);
+    const resolvedAt = new Date(T0.getTime() + 3_600_000);
+    const closedAt = new Date(T0.getTime() + 7_200_000);
+
+    const resolved = await repo.update(created.id, {
+      status: 'RESOLVED',
+      resolvedAt,
+      updatedAt: resolvedAt,
+    });
+    expect(resolved).toEqual({
+      ...created,
+      status: 'RESOLVED',
+      resolvedAt,
+      updatedAt: resolvedAt,
+    });
+
+    const closed = await repo.update(created.id, {
+      status: 'CLOSED',
+      closedAt,
+      updatedAt: closedAt,
+    });
+    expect(closed).toMatchObject({ status: 'CLOSED', resolvedAt, closedAt, updatedAt: closedAt });
+  });
+
+  it('CA-04.2: si falla el evento STATUS_CHANGED, el cambio de estado se revierte', async () => {
+    const created = await create('TRANSPORT', user.USER.id);
+
+    await expect(
+      createDrizzleUnitOfWork(handle.db).run(async (tx) => {
+        await tx.incidents.update(created.id, { status: 'IN_PROGRESS', updatedAt: T0 });
+        // Actor inexistente: viola la clave ajena y la transacción se revierte.
+        await tx.incidentEvents.append({
+          incidentId: created.id,
+          type: 'STATUS_CHANGED',
+          data: { from: 'OPEN', to: 'IN_PROGRESS', comment: null },
+          actorId: '00000000-0000-4000-8000-00000000ffff',
+          createdAt: T0,
+        });
+      }),
+    ).rejects.toThrow();
+
+    expect(await createDrizzleIncidentRepository(handle.db).findById(created.id)).toEqual(created);
+    expect(await handle.db.select().from(incidentEvents)).toEqual([]);
+  });
+
   it.each(['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'] as const)(
     'CA-03.7: el scope de %s devuelve exactamente las que canOnIncident deja ver',
     async (role) => {

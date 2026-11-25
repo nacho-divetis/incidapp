@@ -50,6 +50,10 @@ export interface IncidentChanges {
   priority?: Priority;
   dueDate?: string | null;
   assignedToId?: string;
+  /** Solo lo cambian las transiciones (F04): el `PATCH` de F03 nunca lo toca. */
+  status?: Status;
+  resolvedAt?: Date;
+  closedAt?: Date;
   updatedAt: Date;
 }
 

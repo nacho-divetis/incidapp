@@ -1,3 +1,4 @@
+import type { AllowedTransition, Status } from '@incidapp/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { NotFoundError } from '../errors';
 import { makeGetIncident } from './get-incident';
@@ -38,7 +39,10 @@ describe('getIncident', () => {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       allowedActions: ['update', 'assign'],
-      allowedTransitions: [],
+      allowedTransitions: [
+        { to: 'IN_PROGRESS', requiresComment: false },
+        { to: 'REJECTED', requiresComment: true },
+      ],
     });
   });
 
@@ -73,5 +77,95 @@ describe('getIncident', () => {
     });
 
     await expect(getIncident()(actorNamed('worker'), row.id)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  // CA-04.4: transiciones que salen de cada estado (`permisos.md` → Transiciones de estado), según
+  // lo que puede hacer el actor: todas (Admin, Responsable de sus dptos.), solo las operativas
+  // (Usuario creador o asignado, Responsable fuera de sus dptos. con nota ²) o ninguna.
+  const op = (to: Status, requiresComment = false): AllowedTransition => ({ to, requiresComment });
+  const ALL: Record<Status, AllowedTransition[]> = {
+    OPEN: [op('IN_PROGRESS'), op('REJECTED', true)],
+    IN_PROGRESS: [op('PENDING_THIRD_PARTY'), op('RESOLVED', true)],
+    PENDING_THIRD_PARTY: [op('IN_PROGRESS')],
+    RESOLVED: [op('IN_PROGRESS', true), op('CLOSED')],
+    CLOSED: [op('REOPENED', true)],
+    REJECTED: [],
+    REOPENED: [op('IN_PROGRESS')],
+  };
+  const OPERATIONAL: Record<Status, AllowedTransition[]> = {
+    OPEN: [op('IN_PROGRESS')],
+    IN_PROGRESS: [op('PENDING_THIRD_PARTY'), op('RESOLVED', true)],
+    PENDING_THIRD_PARTY: [op('IN_PROGRESS')],
+    RESOLVED: [],
+    CLOSED: [],
+    REJECTED: [],
+    REOPENED: [op('IN_PROGRESS')],
+  };
+  const NONE = Object.fromEntries(
+    Object.keys(ALL).map((status) => [status, []]),
+  ) as unknown as Record<Status, AllowedTransition[]>;
+
+  const { worker, manager, demoUser, admin } = INCIDENT_USERS;
+  const RELATIONS = [
+    ['Admin', 'admin', DEPARTMENTS.CAL.id, admin.id, null, ALL],
+    ['Dirección', 'director', DEPARTMENTS.LOG.id, worker.id, null, NONE],
+    ['Responsable de su dpto.', 'manager', DEPARTMENTS.LOG.id, worker.id, null, ALL],
+    [
+      'Responsable fuera de sus dptos. y asignado (nota ²)',
+      'manager',
+      DEPARTMENTS.CAL.id,
+      admin.id,
+      manager.id,
+      OPERATIONAL,
+    ],
+    [
+      'Responsable fuera de sus dptos. y creador (nota ²)',
+      'manager',
+      DEPARTMENTS.CAL.id,
+      manager.id,
+      null,
+      OPERATIONAL,
+    ],
+    ['Usuario creador', 'worker', DEPARTMENTS.LOG.id, worker.id, null, OPERATIONAL],
+    [
+      'Usuario asignado de otro dpto.',
+      'worker',
+      DEPARTMENTS.CAL.id,
+      admin.id,
+      worker.id,
+      OPERATIONAL,
+    ],
+    ['Usuario del dpto. sin relación', 'demoUser', DEPARTMENTS.LOG.id, worker.id, null, NONE],
+  ] as const;
+  const STATUSES = Object.keys(ALL) as Status[];
+
+  it.each(
+    RELATIONS.flatMap(([label, who, departmentId, createdById, assignedToId, expected]) =>
+      STATUSES.map(
+        (status) =>
+          [label, status, who, departmentId, createdById, assignedToId, expected[status]] as const,
+      ),
+    ),
+  )(
+    'CA-04.4: allowedTransitions de %s en %s',
+    async (_label, status, who, departmentId, createdById, assignedToId, expected) => {
+      const row = world.incidents.add({ departmentId, createdById, assignedToId, status });
+
+      const incident = await getIncident()(actorNamed(who), row.id);
+
+      expect(incident.allowedTransitions).toEqual(expected);
+    },
+  );
+
+  it('CA-04.4: allowedActions no cambia con F04 (sin comment)', async () => {
+    const row = world.incidents.add({
+      departmentId: DEPARTMENTS.LOG.id,
+      createdById: demoUser.id,
+      status: 'IN_PROGRESS',
+    });
+
+    const incident = await getIncident()(actorNamed('admin'), row.id);
+
+    expect(incident.allowedActions).toEqual(['update', 'assign']);
   });
 });

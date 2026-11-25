@@ -1,10 +1,11 @@
 // Tests de punta a punta de `/api/incidents` con `fastify.inject`: casos de uso, repositorios
-// Drizzle sobre PGlite en memoria con el *seed* real y reloj fijo (CA-03.2 a CA-03.10). La matriz
-// completa rol × endpoint × relación es de T-03.05.
+// Drizzle sobre PGlite en memoria con el *seed* real y reloj fijo (CA-03.2 a CA-03.10, CA-04.2 a
+// CA-04.6). La matriz completa rol × endpoint × relación es de T-03.05 y T-04.05.
 import {
   DEMO_USERS,
   ErrorResponse,
   Incident,
+  IncidentEventList,
   IncidentListResponse,
   UserSummary,
   type Role,
@@ -18,15 +19,18 @@ import { makeLogout } from '../../application/auth/logout';
 import { makeResolveSession } from '../../application/auth/resolve-session';
 import { FakePasswordHasher, FixedClock } from '../../application/auth/test-fakes';
 import { makeAssignIncident } from '../../application/incidents/assign-incident';
+import { makeChangeIncidentStatus } from '../../application/incidents/change-incident-status';
 import { makeCreateIncident } from '../../application/incidents/create-incident';
 import { makeGetIncident } from '../../application/incidents/get-incident';
 import { makeListAssignees } from '../../application/incidents/list-assignees';
+import { makeListIncidentEvents } from '../../application/incidents/list-incident-events';
 import { makeListIncidentTypes } from '../../application/incidents/list-incident-types';
 import { makeListIncidents } from '../../application/incidents/list-incidents';
 import { makeUpdateIncident } from '../../application/incidents/update-incident';
 import { createSessionTokens } from '../../infrastructure/auth/session-tokens';
 import type { DatabaseHandle } from '../../infrastructure/db/client';
 import { createDrizzleAuditLogWriter } from '../../infrastructure/db/repositories/audit-log-writer';
+import { createDrizzleIncidentEventReader } from '../../infrastructure/db/repositories/incident-event-reader';
 import { createDrizzleIncidentRepository } from '../../infrastructure/db/repositories/incident-repository';
 import { createDrizzleIncidentTypeRepository } from '../../infrastructure/db/repositories/incident-type-repository';
 import { createDrizzleSessionRepository } from '../../infrastructure/db/repositories/session-repository';
@@ -54,12 +58,14 @@ let app: FastifyInstance;
 let api: AuthzClient;
 let typeId: Record<string, string>;
 let userId: Record<Role, string>;
+/** Reloj de toda la app: vuelve a T0 antes de cada test; los de F04 lo adelantan entre pasos. */
+let clock: FixedClock;
 
 beforeAll(async () => {
   database = await createTestDatabase();
   const passwordHasher = new FakePasswordHasher();
   await seedDatabase(database.db, { passwordHasher });
-  const clock = new FixedClock(T0);
+  clock = new FixedClock(T0);
   const authDeps = {
     users: createDrizzleUserRepository(database.db),
     sessions: createDrizzleSessionRepository(database.db),
@@ -71,6 +77,7 @@ beforeAll(async () => {
   const incidentDeps = {
     incidents: createDrizzleIncidentRepository(database.db),
     incidentTypes: createDrizzleIncidentTypeRepository(database.db),
+    incidentEvents: createDrizzleIncidentEventReader(database.db),
     users: createDrizzleUserAdminRepository(database.db),
     unitOfWork: createDrizzleUnitOfWork(database.db),
     clock,
@@ -92,6 +99,8 @@ beforeAll(async () => {
       updateIncident: makeUpdateIncident(incidentDeps),
       listAssignees: makeListAssignees(incidentDeps),
       assignIncident: makeAssignIncident(incidentDeps),
+      changeIncidentStatus: makeChangeIncidentStatus(incidentDeps),
+      listIncidentEvents: makeListIncidentEvents(incidentDeps),
     },
     enforceHttps: false,
     logger: false,
@@ -112,6 +121,7 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
+  clock.current = T0;
   await database.db.delete(incidentEvents);
   await database.db.delete(incidents);
   await database.db.delete(codeCounters);
@@ -166,7 +176,7 @@ describe('POST /api/incidents', () => {
       dueDate: '2026-12-01',
       createdAt: T0.toISOString(),
       allowedActions: ['update'],
-      allowedTransitions: [],
+      allowedTransitions: [{ to: 'IN_PROGRESS', requiresComment: false }],
     });
     expect(await eventRows()).toMatchObject([
       { incidentId: incident.id, type: 'CREATED', actorId: userId.USER, data: {}, createdAt: T0 },
@@ -554,6 +564,291 @@ describe('asignación', () => {
   });
 });
 
+// --- CA-04.2 · CA-04.3: cambio de estado --------------------------------------------------------
+
+/** `POST …/transitions` como `role`. */
+const transition = (role: Role, id: string, payload: Record<string, unknown>) =>
+  api.call('POST', `/api/incidents/${id}/transitions`, { token: api.tokens[role], payload });
+
+/** Avanza la incidencia por las transiciones indicadas como Admin, un minuto después cada una. */
+async function moveTo(id: string, path: { to: string; comment?: string }[]) {
+  for (const step of path) {
+    clock.advance(60_000);
+    expect((await transition('ADMIN', id, step)).statusCode).toBe(200);
+  }
+}
+
+describe('POST /api/incidents/:id/transitions', () => {
+  it('CA-04.2: el creador empieza su incidencia: 200 con estado, fechas y acciones recalculadas y un STATUS_CHANGED', async () => {
+    const created = await createAs('USER');
+    clock.advance(60_000);
+
+    const response = await transition('USER', created.id, { to: 'IN_PROGRESS', status: 'CLOSED' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(Incident.parse(response.json())).toMatchObject({
+      status: 'IN_PROGRESS',
+      updatedAt: clock.now().toISOString(),
+      resolvedAt: null,
+      closedAt: null,
+      allowedActions: [],
+      allowedTransitions: [
+        { to: 'PENDING_THIRD_PARTY', requiresComment: false },
+        { to: 'RESOLVED', requiresComment: true },
+      ],
+    });
+    const [, changed] = await eventRows();
+    expect(changed).toMatchObject({
+      incidentId: created.id,
+      type: 'STATUS_CHANGED',
+      actorId: userId.USER,
+      data: { from: 'OPEN', to: 'IN_PROGRESS', comment: null },
+      createdAt: clock.now(),
+    });
+  });
+
+  it('CA-04.2 · CA-04.4: resolver con comentario guarda resolvedAt; el Responsable cierra (closedAt) y reabre; Dirección no recibe transiciones', async () => {
+    const created = await createAs('USER');
+    await moveTo(created.id, [{ to: 'IN_PROGRESS' }]);
+
+    clock.advance(60_000);
+    const resolved = await transition('USER', created.id, {
+      to: 'RESOLVED',
+      comment: '  Entregado con retraso.  ',
+    });
+    const resolvedAt = clock.now().toISOString();
+    expect(resolved.statusCode).toBe(200);
+    expect(Incident.parse(resolved.json())).toMatchObject({
+      status: 'RESOLVED',
+      resolvedAt,
+      allowedTransitions: [],
+    });
+
+    clock.advance(60_000);
+    const closed = await transition('MANAGER', created.id, { to: 'CLOSED' });
+    expect(Incident.parse(closed.json())).toMatchObject({
+      status: 'CLOSED',
+      resolvedAt,
+      closedAt: clock.now().toISOString(),
+      allowedTransitions: [{ to: 'REOPENED', requiresComment: true }],
+    });
+
+    const detail = await api.call('GET', `/api/incidents/${created.id}`, {
+      token: api.tokens.DIRECTOR,
+    });
+    expect(Incident.parse(detail.json()).allowedTransitions).toEqual([]);
+
+    clock.advance(60_000);
+    const reopened = await transition('MANAGER', created.id, {
+      to: 'REOPENED',
+      comment: 'El cliente dice que falta un bulto.',
+    });
+    expect(Incident.parse(reopened.json())).toMatchObject({ status: 'REOPENED', resolvedAt });
+    const changes = (await eventRows()).filter((e) => e.type === 'STATUS_CHANGED');
+    expect(changes.map((e) => e.data)).toEqual([
+      { from: 'OPEN', to: 'IN_PROGRESS', comment: null },
+      { from: 'IN_PROGRESS', to: 'RESOLVED', comment: 'Entregado con retraso.' },
+      { from: 'RESOLVED', to: 'CLOSED', comment: null },
+      { from: 'CLOSED', to: 'REOPENED', comment: 'El cliente dice que falta un bulto.' },
+    ]);
+  });
+
+  it('CA-04.3: 404 si no existe, no es un UUID o no es visible (antes que el 409)', async () => {
+    const foreign = await createAs('ADMIN', { typeId: typeId.QUALITY });
+    await moveTo(foreign.id, [{ to: 'REJECTED', comment: 'No procede.' }]);
+
+    for (const [role, id] of [
+      ['ADMIN', MISSING_ID],
+      ['ADMIN', 'no-es-un-uuid'],
+      ['USER', foreign.id],
+      ['MANAGER', foreign.id],
+    ] as const) {
+      const response = await transition(role, id, { to: 'IN_PROGRESS' });
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toEqual(NOT_FOUND);
+    }
+  });
+
+  it('CA-04.3: 409 en español si la transición no existe desde el estado actual (también para Dirección)', async () => {
+    const created = await createAs('USER');
+    await moveTo(created.id, [{ to: 'REJECTED', comment: 'Duplicada.' }]);
+
+    for (const role of ['ADMIN', 'DIRECTOR'] as const) {
+      const response = await transition(role, created.id, { to: 'IN_PROGRESS' });
+      expect(response.statusCode).toBe(409);
+      expect(errorOf(response)).toEqual({
+        code: 'CONFLICT',
+        message: 'No se puede pasar de Rechazada a En curso.',
+      });
+    }
+  });
+
+  it('CA-04.3: 403 si el actor no puede hacer su tipo (antes que el 400 del comentario)', async () => {
+    const created = await createAs('USER');
+
+    for (const [role, to] of [
+      ['DIRECTOR', 'IN_PROGRESS'],
+      ['DIRECTOR', 'REJECTED'],
+      ['USER', 'REJECTED'],
+    ] as const) {
+      const response = await transition(role, created.id, { to });
+      expect(response.statusCode).toBe(403);
+      expect(errorOf(response).code).toBe('FORBIDDEN');
+    }
+    expect((await eventRows()).map((e) => e.type)).toEqual(['CREATED']);
+  });
+
+  it('CA-04.3: 400 si falta el comentario obligatorio (o solo tiene espacios) y nada cambia', async () => {
+    const created = await createAs('USER');
+
+    for (const payload of [{ to: 'REJECTED' }, { to: 'REJECTED', comment: '   ' }]) {
+      const response = await transition('MANAGER', created.id, payload);
+      expect(response.statusCode).toBe(400);
+      expect(errorOf(response)).toEqual({
+        code: 'VALIDATION',
+        message: 'Esta transición requiere un comentario.',
+        details: [{ path: 'comment', message: 'Esta transición requiere un comentario.' }],
+      });
+    }
+    const detail = await api.call('GET', `/api/incidents/${created.id}`, {
+      token: api.tokens.MANAGER,
+    });
+    expect(Incident.parse(detail.json()).status).toBe('OPEN');
+    expect((await eventRows()).map((e) => e.type)).toEqual(['CREATED']);
+  });
+
+  it.each([
+    ['un `to` que no es de Status', { to: 'ABIERTA' }],
+    ['sin `to`', {}],
+    ['un comentario de más de 2000 caracteres', { to: 'REJECTED', comment: 'a'.repeat(2001) }],
+  ])('CA-04.3: 400 con %s', async (_case, payload) => {
+    const created = await createAs('USER');
+
+    const response = await transition('MANAGER', created.id, payload);
+
+    expect(response.statusCode).toBe(400);
+    expect(errorOf(response).code).toBe('VALIDATION');
+  });
+});
+
+// --- CA-04.6: historial -------------------------------------------------------------------------
+
+describe('GET /api/incidents/:id/events', () => {
+  it('CA-04.6: devuelve el historial en orden cronológico con el actor, la fecha y los datos de cada tipo', async () => {
+    const created = await createAs('USER');
+    clock.advance(60_000);
+    await api.call('PATCH', `/api/incidents/${created.id}`, {
+      token: api.tokens.USER,
+      payload: { priority: 'URGENT' },
+    });
+    clock.advance(60_000);
+    await api.call('POST', `/api/incidents/${created.id}/assign`, {
+      token: api.tokens.MANAGER,
+      payload: { assigneeId: userId.USER },
+    });
+    clock.advance(60_000);
+    await transition('USER', created.id, { to: 'IN_PROGRESS', comment: 'Voy.' });
+
+    const response = await api.call('GET', `/api/incidents/${created.id}/events`, {
+      token: api.tokens.DIRECTOR,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    const minute = (n: number) => new Date(T0.getTime() + n * 60_000).toISOString();
+    const pablo = { id: userId.USER, name: 'Pablo Moreno' };
+    expect(IncidentEventList.parse(response.json())).toEqual([
+      { id: expect.any(String), type: 'CREATED', actor: pablo, createdAt: minute(0), data: {} },
+      {
+        id: expect.any(String),
+        type: 'UPDATED',
+        actor: pablo,
+        createdAt: minute(1),
+        data: { changes: [{ field: 'priority', before: 'HIGH', after: 'URGENT' }] },
+      },
+      {
+        id: expect.any(String),
+        type: 'ASSIGNED',
+        actor: { id: userId.MANAGER, name: 'Carmen Vidal' },
+        createdAt: minute(2),
+        data: { from: null, to: pablo },
+      },
+      {
+        id: expect.any(String),
+        type: 'STATUS_CHANGED',
+        actor: pablo,
+        createdAt: minute(3),
+        data: { from: 'OPEN', to: 'IN_PROGRESS', comment: 'Voy.' },
+      },
+    ]);
+  });
+
+  it('CA-04.6: 404 con el mismo cuerpo si no existe, no es un UUID o no es visible', async () => {
+    const foreign = await createAs('ADMIN', { typeId: typeId.QUALITY });
+
+    for (const [role, id] of [
+      ['ADMIN', MISSING_ID],
+      ['ADMIN', 'no-es-un-uuid'],
+      ['USER', foreign.id],
+      ['MANAGER', foreign.id],
+    ] as const) {
+      const response = await api.call('GET', `/api/incidents/${id}/events`, {
+        token: api.tokens[role],
+      });
+      expect(response.statusCode).toBe(404);
+      expect(response.json()).toEqual(NOT_FOUND);
+    }
+  });
+});
+
+// --- CA-04.5: un evento por mutación ------------------------------------------------------------
+
+describe('historial de las mutaciones', () => {
+  it('CA-04.5: cada mutación de F03 y F04 deja exactamente un evento, y ninguno si no cambia nada o falla', async () => {
+    const count = async () => (await eventRows()).length;
+    const step = async (
+      call: () => Promise<{ statusCode: number }>,
+      status: number,
+      added: number,
+    ) => {
+      const before = await count();
+      clock.advance(60_000);
+      expect((await call()).statusCode).toBe(status);
+      expect((await count()) - before).toBe(added);
+    };
+
+    const created = await createAs('USER');
+    expect(await count()).toBe(1);
+    const url = `/api/incidents/${created.id}`;
+    const patch = (payload: Record<string, unknown>) => () =>
+      api.call('PATCH', url, { token: api.tokens.USER, payload });
+    const assign = (assigneeId: string) => () =>
+      api.call('POST', `${url}/assign`, { token: api.tokens.MANAGER, payload: { assigneeId } });
+    const move = (role: Role, payload: Record<string, unknown>) => () =>
+      transition(role, created.id, payload);
+
+    await step(patch({ title: 'Otro título' }), 200, 1);
+    await step(patch({ title: 'Otro título' }), 200, 0);
+    await step(assign(userId.USER), 200, 1);
+    await step(assign(userId.USER), 200, 0);
+    await step(assign(userId.ADMIN), 400, 0);
+    await step(move('USER', { to: 'IN_PROGRESS' }), 200, 1);
+    await step(move('USER', { to: 'IN_PROGRESS' }), 409, 0);
+    await step(move('USER', { to: 'RESOLVED' }), 400, 0);
+    await step(move('DIRECTOR', { to: 'RESOLVED', comment: 'No.' }), 403, 0);
+    await step(move('USER', { to: 'RESOLVED', comment: 'Hecho.' }), 200, 1);
+
+    expect((await eventRows()).map((e) => [e.type, e.actorId])).toEqual([
+      ['CREATED', userId.USER],
+      ['UPDATED', userId.USER],
+      ['ASSIGNED', userId.MANAGER],
+      ['STATUS_CHANGED', userId.USER],
+      ['STATUS_CHANGED', userId.USER],
+    ]);
+  });
+});
+
 // --- 401 ----------------------------------------------------------------------------------------
 
 describe('sin sesión', () => {
@@ -564,6 +859,8 @@ describe('sin sesión', () => {
     ['PATCH', `/api/incidents/${MISSING_ID}`],
     ['GET', `/api/incidents/${MISSING_ID}/assignees`],
     ['POST', `/api/incidents/${MISSING_ID}/assign`],
+    ['POST', `/api/incidents/${MISSING_ID}/transitions`],
+    ['GET', `/api/incidents/${MISSING_ID}/events`],
   ] as const)('%s %s → 401 (antes que la validación)', async (method, url) => {
     const response = await api.call(method, url, { payload: method === 'GET' ? undefined : {} });
 

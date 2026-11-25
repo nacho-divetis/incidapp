@@ -2,8 +2,10 @@ import {
   AssignIncidentInput,
   CreateIncidentInput,
   Incident,
+  IncidentEventList,
   IncidentListQuery,
   IncidentListResponse,
+  TransitionInput,
   UpdateIncidentInput,
   UserSummary,
 } from '@incidapp/shared';
@@ -11,10 +13,12 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { ResolveSession } from '../../application/auth/resolve-session';
 import type { AssignIncident } from '../../application/incidents/assign-incident';
+import type { ChangeIncidentStatus } from '../../application/incidents/change-incident-status';
 import type { CreateIncident } from '../../application/incidents/create-incident';
 import type { GetIncident } from '../../application/incidents/get-incident';
 import { assertCanCreateIncident } from '../../application/incidents/incident-support';
 import type { ListAssignees } from '../../application/incidents/list-assignees';
+import type { ListIncidentEvents } from '../../application/incidents/list-incident-events';
 import type { ListIncidents } from '../../application/incidents/list-incidents';
 import type { UpdateIncident } from '../../application/incidents/update-incident';
 import { currentUserOf, makeRequireSession } from '../auth/require-session';
@@ -27,6 +31,8 @@ export interface IncidentsDeps {
   updateIncident: UpdateIncident;
   listAssignees: ListAssignees;
   assignIncident: AssignIncident;
+  changeIncidentStatus: ChangeIncidentStatus;
+  listIncidentEvents: ListIncidentEvents;
 }
 
 export interface IncidentsRoutesDeps extends IncidentsDeps {
@@ -40,7 +46,7 @@ export interface IncidentsRoutesDeps extends IncidentsDeps {
 const IncidentIdParams = z.object({ id: z.string() });
 
 /**
- * `/incidents…` (bajo el prefijo `/api`, CA-03.2 a CA-03.10). Las rutas solo traducen HTTP ↔ casos
+ * `/incidents…` (bajo el prefijo `/api`, CA-03.2 a CA-03.10, CA-04.2 a CA-04.6). Las rutas solo traducen HTTP ↔ casos
  * de uso; los permisos los decide la `AuthorizationPolicy` dentro de cada caso de uso.
  *
  * Orden de las comprobaciones: sesión (401, en `preValidation`, antes que el esquema) → forma de la
@@ -123,5 +129,31 @@ export const incidentsRoutes =
           id: request.params.id,
           input: request.body,
         }),
+    );
+
+    // Cambio de estado (CA-04.2, CA-04.3): `status` solo cambia por aquí. Tras la forma del cuerpo,
+    // el caso de uso decide en orden 404 → 409 → 403 → 400.
+    app.post(
+      '/incidents/:id/transitions',
+      {
+        schema: {
+          params: IncidentIdParams,
+          body: TransitionInput,
+          response: { 200: Incident },
+        },
+      },
+      async (request) =>
+        useCases.changeIncidentStatus({
+          actor: currentUserOf(request),
+          id: request.params.id,
+          input: request.body,
+        }),
+    );
+
+    // Historial (CA-04.6): del más antiguo al más reciente.
+    app.get(
+      '/incidents/:id/events',
+      { schema: { params: IncidentIdParams, response: { 200: IncidentEventList } } },
+      async (request) => useCases.listIncidentEvents(currentUserOf(request), request.params.id),
     );
   };
