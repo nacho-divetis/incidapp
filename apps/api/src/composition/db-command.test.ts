@@ -4,10 +4,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { asc } from 'drizzle-orm';
+import { asc, count } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase } from '../infrastructure/db/client';
-import { departments } from '../infrastructure/db/schema';
+import { DEMO_INCIDENTS, DEMO_STAFF } from '../infrastructure/db/demo-incidents';
+import { departments, incidentEvents, incidents, users } from '../infrastructure/db/schema';
 
 const apiDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -38,7 +39,7 @@ function runDbCommand(command: string) {
 }
 
 describe('db-command', () => {
-  it('CA-00.8 y CA-00.9: migrate y seed, dos veces cada uno, terminan bien y dejan 9 departamentos', async () => {
+  it('CA-00.8, CA-00.9 y CA-07.3: migrate y seed, dos veces cada uno, terminan bien y dejan 9 departamentos y los datos demo sin duplicar', async () => {
     for (const command of ['migrate', 'migrate', 'seed', 'seed']) {
       const result = runDbCommand(command);
       expect(result.stderr).toBe('');
@@ -62,6 +63,15 @@ describe('db-command', () => {
         'PROD',
         'TEC',
       ]);
+
+      // CA-07.1 y CA-07.3: los datos demo, una sola vez aunque el seed se haya ejecutado dos.
+      const [incidentTotal] = await handle.db.select({ total: count() }).from(incidents);
+      const [eventTotal] = await handle.db.select({ total: count() }).from(incidentEvents);
+      const [userTotal] = await handle.db.select({ total: count() }).from(users);
+      const expectedEvents = DEMO_INCIDENTS.reduce((total, i) => total + 1 + i.steps.length, 0);
+      expect(incidentTotal?.total).toBe(DEMO_INCIDENTS.length);
+      expect(eventTotal?.total).toBe(expectedEvents);
+      expect(userTotal?.total).toBe(4 + DEMO_STAFF.length);
     } finally {
       await handle.close();
     }
