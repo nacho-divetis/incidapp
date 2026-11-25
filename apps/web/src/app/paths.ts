@@ -13,3 +13,19 @@ export const USER_CREATE_PATH = `${USERS_PATH}/nuevo`;
 export function userEditPath(id: string): string {
   return `${USERS_PATH}/${encodeURIComponent(id)}`;
 }
+
+/** Listado de incidencias (CA-03.12). */
+export const INCIDENTS_PATH = '/incidencias';
+
+/** Alta de una incidencia (CA-03.13). */
+export const INCIDENT_CREATE_PATH = `${INCIDENTS_PATH}/nueva`;
+
+/** Detalle de una incidencia (CA-03.14). */
+export function incidentDetailPath(id: string): string {
+  return `${INCIDENTS_PATH}/${encodeURIComponent(id)}`;
+}
+
+/** Edición de una incidencia (CA-03.15). */
+export function incidentEditPath(id: string): string {
+  return `${incidentDetailPath(id)}/editar`;
+}

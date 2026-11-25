@@ -5,9 +5,16 @@
 //   (`AppLayout` con la cabecera del usuario y la navegación).
 // - Gestión de usuarios (`/admin/usuarios…`): además, `RequireAction('manageUsers')`; sin la acción
 //   pinta `ForbiddenPage` sin montar la página (CA-02.17).
+// - Incidencias (`/incidencias…`, CA-03.12 a CA-03.15): para cualquiera con sesión; el alta exige
+//   además `RequireAction('createIncident')`. El detalle y la edición deciden con las
+//   `allowedActions` de la incidencia (las calcula la API).
 // - Cualquier otra ruta: `NotFoundPage`, para todos.
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { HomePage } from '../pages/HomePage';
+import { IncidentCreatePage } from '../pages/IncidentCreatePage';
+import { IncidentDetailPage } from '../pages/IncidentDetailPage';
+import { IncidentEditPage } from '../pages/IncidentEditPage';
+import { IncidentListPage } from '../pages/IncidentListPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { UserCreatePage } from '../pages/UserCreatePage';
@@ -15,7 +22,7 @@ import { UserEditPage } from '../pages/UserEditPage';
 import { UsersPage } from '../pages/UsersPage';
 import { ProtectedLayout } from './ProtectedLayout';
 import { RedirectIfAuthenticated, RequireAction, RequireSession } from './guards';
-import { HOME_PATH, USERS_PATH } from './paths';
+import { HOME_PATH, INCIDENTS_PATH, USERS_PATH } from './paths';
 import { LOGIN_PATH, loginPath } from './safe-next-path';
 
 export const routes: RouteObject[] = [
@@ -30,6 +37,19 @@ export const routes: RouteObject[] = [
         element: <ProtectedLayout />,
         children: [
           { path: HOME_PATH, element: <HomePage /> },
+          {
+            path: INCIDENTS_PATH,
+            children: [
+              { index: true, element: <IncidentListPage /> },
+              {
+                path: 'nueva',
+                element: <RequireAction action="createIncident" />,
+                children: [{ index: true, element: <IncidentCreatePage /> }],
+              },
+              { path: ':id', element: <IncidentDetailPage /> },
+              { path: ':id/editar', element: <IncidentEditPage /> },
+            ],
+          },
           {
             path: USERS_PATH,
             element: <RequireAction action="manageUsers" />,

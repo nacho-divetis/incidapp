@@ -5,6 +5,7 @@ export * from './DemoAccountsPanel';
 export * from './IncidentAssignForm';
 export * from './IncidentFilters';
 export * from './IncidentForm';
+export * from './IncidentLoadError';
 export * from './IncidentStatusActions';
 export * from './IncidentSummary';
 export * from './IncidentTable';

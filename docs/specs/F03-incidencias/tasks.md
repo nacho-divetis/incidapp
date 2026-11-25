@@ -36,7 +36,7 @@
 - Notas: skill `componente`, en un worktree de `.worktrees/` (receta en la skill `tarea`). Presentacionales (sin queries, router ni sesión); props según `plan.md`. Reutiliza `Badge`, `Table`, `FormField`, `PageHeader`, `Alert` y el patrón de `UserForm`/`UserTable` de F02 (validación con el esquema de `shared`, `fieldErrors` del servidor, `linkAs`). `IncidentForm` valida con `CreateIncidentInput`/`UpdateIncidentInput`, muestra el departamento del tipo elegido y en `edit` no tiene tipo. `IncidentSummary` deja un hueco `actions` que llenarán "Editar" y las transiciones de F04. `formatDate` no desplaza las fechas `AAAA-MM-DD`; `formatDateTime` (para F04) en `Europe/Madrid`. Stories con los estados (vacío, cargando por props, errores, enviando, con y sin acciones, sin asignado) y tests de interacción; axe sin violaciones. **Revisión:** hallazgo medio aceptado (en `IncidentForm`, un `fieldError` de la API puede reaparecer si el usuario edita el campo y vuelve al valor enviado; es raro y no se pierden datos). Para T-03.04: montar `IncidentAssignForm` con `key={incident.assignee?.id}`.
 
 ### T-03.04 · Montar las páginas de incidencias: listado, alta, detalle y edición
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-03.02, T-03.03, T-02.07
 - Paralelizable con: T-03.05, T-04.02
