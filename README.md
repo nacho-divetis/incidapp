@@ -33,7 +33,7 @@ El Admin gestiona los usuarios desde **Usuarios** (alta, edición, desactivació
 - **Alta:** cualquier rol salvo Dirección crea incidencias eligiendo un tipo; el tipo decide el departamento que la recibe y el servidor genera el código (`INC-AAAA-NNNN`).
 - **Listado:** cada usuario ve solo las incidencias que le permite `docs/permisos.md`, con filtros por estado, prioridad, departamento, "Asignadas a mí" y búsqueda por código o título.
 - **Detalle:** datos, edición y asignación (según las acciones permitidas que devuelve la API), botones de cambio de estado y la **línea de tiempo** con todo lo ocurrido, en hora de Madrid.
-- **Estados:** Abierta → En curso → Resuelta → Cerrada, con Rechazada y Reabierta. Rechazar, cerrar y reabrir exigen un comentario. El historial es solo de inserción.
+- **Estados:** Abierta → En curso (⇄ Pendiente de terceros) → Resuelta → Cerrada, con Rechazada (desde Abierta) y Reabierta (desde Cerrada). Rechazar, resolver, devolver una resuelta a En curso y reabrir exigen un comentario. El historial es solo de inserción.
 
 **Alcance recortado del TFM:** por plazo, quedan fuera los adjuntos, el registro de auditoría de incidencias, el cuadro de mando y los comentarios sueltos (solo hay comentario al cambiar de estado). Están descritos como trabajo futuro en `docs/requisitos.md`.
 
