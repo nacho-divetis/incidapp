@@ -1,13 +1,21 @@
 // Matriz de autorización de la API (CA-02.15): endpoint × {sin sesión, ADMIN, DIRECTOR, MANAGER, USER}.
 // Fuente de verdad: `docs/permisos.md`. F03 y F04 añaden filas a `ROWS` (o tablas análogas) con
 // incidencias visibles y no visibles. Cada caso usa un usuario destino nuevo para no depender del orden.
-import type { Role } from '@incidapp/shared';
+import { DEMO_USERS, type Role } from '@incidapp/shared';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { makeLogin } from '../application/auth/login';
 import { makeLogout } from '../application/auth/logout';
 import { makeResolveSession } from '../application/auth/resolve-session';
-import { FixedClock } from '../application/auth/test-fakes';
+import { FakePasswordHasher, FixedClock } from '../application/auth/test-fakes';
 import { makeListDepartments } from '../application/departments/list-departments';
+import { makeAssignIncident } from '../application/incidents/assign-incident';
+import { makeCreateIncident } from '../application/incidents/create-incident';
+import { makeGetIncident } from '../application/incidents/get-incident';
+import { makeListAssignees } from '../application/incidents/list-assignees';
+import { makeListIncidentTypes } from '../application/incidents/list-incident-types';
+import { makeListIncidents } from '../application/incidents/list-incidents';
+import { makeUpdateIncident } from '../application/incidents/update-incident';
 import { makeCreateUser } from '../application/users/create-user';
 import { makeGetUser } from '../application/users/get-user';
 import { makeListUsers } from '../application/users/list-users';
@@ -19,14 +27,29 @@ import { createSessionTokens } from '../infrastructure/auth/session-tokens';
 import type { DatabaseHandle } from '../infrastructure/db/client';
 import { createDrizzleAuditLogWriter } from '../infrastructure/db/repositories/audit-log-writer';
 import { createDrizzleDepartmentRepository } from '../infrastructure/db/repositories/department-repository';
+import { createDrizzleIncidentRepository } from '../infrastructure/db/repositories/incident-repository';
+import { createDrizzleIncidentTypeRepository } from '../infrastructure/db/repositories/incident-type-repository';
 import { createDrizzleSessionRepository } from '../infrastructure/db/repositories/session-repository';
 import { createDrizzleUserAdminRepository } from '../infrastructure/db/repositories/user-admin-repository';
 import { createDrizzleUserRepository } from '../infrastructure/db/repositories/user-repository';
+import {
+  departments,
+  incidents,
+  incidentTypes,
+  userDepartments,
+  users,
+} from '../infrastructure/db/schema';
 import { seedDatabase } from '../infrastructure/db/seed';
 import { createTestDatabase } from '../infrastructure/db/test-database';
 import { createDrizzleUnitOfWork } from '../infrastructure/db/unit-of-work';
 import { buildApp } from './app';
-import { createAuthzClient, unusedIncidents, type AuthzClient } from './test-support';
+import {
+  createAuthzClient,
+  unusedAdmin,
+  unusedIncidents,
+  validIncidentBody,
+  type AuthzClient,
+} from './test-support';
 
 const MISSING_ID = '00000000-0000-4000-8000-00000000ffff';
 const ROLES = ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'] as const satisfies readonly Role[];
@@ -292,5 +315,552 @@ describe('CA-02.4/CA-02.15: coherencia de allowedActions con lo que la API permi
     const me = await api.call('GET', '/api/auth/me', { token: api.tokens[role] });
     const actions = (me.json() as { allowedActions: string[] }).allowedActions;
     expect([...actions].sort()).toEqual([...expected].sort());
+  });
+});
+
+// --- Incidencias (CA-03.11) ------------------------------------------------------------------------
+// Cada caso crea su propia incidencia: ningún test depende del estado que dejó otro.
+
+type Creator = 'ADMIN' | 'MANAGER' | 'USER';
+
+interface Harness {
+  api: AuthzClient;
+  database: DatabaseHandle;
+  close: () => Promise<void>;
+  typeId: Record<string, string>;
+  userId: Record<Role, string>;
+  /** Usuario activo del departamento CAL (candidato a asignar en las incidencias de CAL). */
+  calUserId: string;
+}
+
+async function startHarness(): Promise<Harness> {
+  const database = await createTestDatabase();
+  const passwordHasher = new FakePasswordHasher();
+  await seedDatabase(database.db, { passwordHasher });
+  const clock = new FixedClock(new Date('2026-11-25T10:00:00.000Z'));
+  const authDeps = {
+    users: createDrizzleUserRepository(database.db),
+    sessions: createDrizzleSessionRepository(database.db),
+    auditLog: createDrizzleAuditLogWriter(database.db),
+    passwordHasher,
+    sessionTokens: createSessionTokens(),
+    clock,
+  };
+  const incidentDeps = {
+    incidents: createDrizzleIncidentRepository(database.db),
+    incidentTypes: createDrizzleIncidentTypeRepository(database.db),
+    users: createDrizzleUserAdminRepository(database.db),
+    unitOfWork: createDrizzleUnitOfWork(database.db),
+    clock,
+  };
+  const app = await buildApp({
+    getHealth: async () => ({ status: 'ok', db: 'ok', version: '0.1.0' }),
+    auth: {
+      login: makeLogin(authDeps),
+      logout: makeLogout(authDeps),
+      resolveSession: makeResolveSession(authDeps),
+      loginRateLimit: { max: 10_000, timeWindowMs: 60_000 },
+    },
+    ...unusedAdmin,
+    incidentTypes: { listIncidentTypes: makeListIncidentTypes(incidentDeps) },
+    incidents: {
+      listIncidents: makeListIncidents(incidentDeps),
+      getIncident: makeGetIncident(incidentDeps),
+      createIncident: makeCreateIncident(incidentDeps),
+      updateIncident: makeUpdateIncident(incidentDeps),
+      listAssignees: makeListAssignees(incidentDeps),
+      assignIncident: makeAssignIncident(incidentDeps),
+    },
+    enforceHttps: false,
+    logger: false,
+  });
+  const api = await createAuthzClient(app);
+  const typeId = Object.fromEntries(
+    (await database.db.select().from(incidentTypes)).map((t) => [t.code, t.id]),
+  );
+  const userRows = await database.db.select().from(users);
+  const userId = Object.fromEntries(
+    DEMO_USERS.map((demo) => [demo.role, userRows.find((r) => r.email === demo.email)!.id]),
+  ) as Record<Role, string>;
+  const [cal] = await database.db.select().from(departments).where(eq(departments.code, 'CAL'));
+  const [calUser] = await database.db
+    .insert(users)
+    .values({
+      email: 'calidad.activo@incidapp.test',
+      name: 'Usuario de Calidad',
+      role: 'USER',
+      passwordHash: 'sin-uso',
+    })
+    .returning();
+  await database.db.insert(userDepartments).values({ userId: calUser!.id, departmentId: cal!.id });
+  return {
+    api,
+    database,
+    typeId,
+    userId,
+    calUserId: calUser!.id,
+    close: async () => {
+      await app.close();
+      await database.close();
+    },
+  };
+}
+
+/**
+ * Relación de la incidencia con el Responsable (dpto. LOG) y el Usuario (dpto. LOG) demo, y lo que
+ * `permisos.md` les permite (tabla escrita a mano, no derivada del código). Admin: todo; Dirección:
+ * solo ver. `type`: TRANSPORT (dpto. LOG, el de ambos) o QUALITY (dpto. CAL, ajeno a ambos).
+ */
+interface Relation {
+  name: string;
+  type: 'TRANSPORT' | 'QUALITY';
+  creator: Creator;
+  status: 'OPEN' | 'IN_PROGRESS';
+  assignedTo?: 'MANAGER' | 'USER';
+  /** [Responsable, Usuario] */
+  view: readonly [boolean, boolean];
+  edit: readonly [boolean, boolean];
+  assign: readonly [boolean, boolean];
+}
+
+const RELATIONS: Relation[] = [
+  {
+    name: 'de sus dptos., creada por el Admin',
+    type: 'TRANSPORT',
+    creator: 'ADMIN',
+    status: 'OPEN',
+    view: [true, true],
+    edit: [true, false],
+    assign: [true, false],
+  },
+  {
+    name: 'de sus dptos., creada por el Usuario y ABIERTA',
+    type: 'TRANSPORT',
+    creator: 'USER',
+    status: 'OPEN',
+    view: [true, true],
+    edit: [true, true],
+    assign: [true, false],
+  },
+  {
+    name: 'de sus dptos., creada por el Usuario y EN CURSO',
+    type: 'TRANSPORT',
+    creator: 'USER',
+    status: 'IN_PROGRESS',
+    view: [true, true],
+    edit: [true, false],
+    assign: [true, false],
+  },
+  {
+    name: 'ajena, creada por el Usuario y ABIERTA',
+    type: 'QUALITY',
+    creator: 'USER',
+    status: 'OPEN',
+    view: [false, true],
+    edit: [false, true],
+    assign: [false, false],
+  },
+  {
+    name: 'ajena, creada por el Responsable y ABIERTA (nota 2)',
+    type: 'QUALITY',
+    creator: 'MANAGER',
+    status: 'OPEN',
+    view: [true, false],
+    edit: [true, false],
+    assign: [false, false],
+  },
+  {
+    name: 'ajena, creada por el Responsable y EN CURSO (nota 2)',
+    type: 'QUALITY',
+    creator: 'MANAGER',
+    status: 'IN_PROGRESS',
+    view: [true, false],
+    edit: [false, false],
+    assign: [false, false],
+  },
+  {
+    name: 'ajena, asignada al Usuario',
+    type: 'QUALITY',
+    creator: 'ADMIN',
+    status: 'OPEN',
+    assignedTo: 'USER',
+    view: [false, true],
+    edit: [false, false],
+    assign: [false, false],
+  },
+  {
+    name: 'ajena, asignada al Responsable (nota 2)',
+    type: 'QUALITY',
+    creator: 'ADMIN',
+    status: 'OPEN',
+    assignedTo: 'MANAGER',
+    view: [true, false],
+    edit: [false, false],
+    assign: [false, false],
+  },
+  {
+    name: 'de sus dptos., asignada al Usuario',
+    type: 'TRANSPORT',
+    creator: 'ADMIN',
+    status: 'OPEN',
+    assignedTo: 'USER',
+    view: [true, true],
+    edit: [true, false],
+    assign: [true, false],
+  },
+  {
+    name: 'de sus dptos., creada por el Responsable',
+    type: 'TRANSPORT',
+    creator: 'MANAGER',
+    status: 'OPEN',
+    view: [true, true],
+    edit: [true, false],
+    assign: [true, false],
+  },
+  {
+    name: 'ajena, sin relación',
+    type: 'QUALITY',
+    creator: 'ADMIN',
+    status: 'OPEN',
+    view: [false, false],
+    edit: [false, false],
+    assign: [false, false],
+  },
+];
+
+/** Crea por la API una incidencia con la relación indicada (estado y asignado, directo en la BD). */
+async function createRelated(h: Harness, rel: Relation, title = 'Incidencia de la matriz') {
+  const response = await h.api.call('POST', '/api/incidents', {
+    token: h.api.tokens[rel.creator],
+    payload: validIncidentBody(h.typeId[rel.type]!, title),
+  });
+  expect(response.statusCode).toBe(201);
+  const id = (response.json() as { id: string }).id;
+  const patch = {
+    ...(rel.status === 'OPEN' ? {} : { status: rel.status }),
+    ...(rel.assignedTo ? { assignedTo: h.userId[rel.assignedTo] } : {}),
+  };
+  if (Object.keys(patch).length > 0) {
+    await h.database.db.update(incidents).set(patch).where(eq(incidents.id, id));
+  }
+  return id;
+}
+
+/** Candidato a asignar válido: un usuario activo del departamento propietario. */
+const assigneeFor = (h: Harness, rel: Relation) =>
+  rel.type === 'TRANSPORT' ? h.userId.USER : h.calUserId;
+
+/** [sin sesión, ADMIN, DIRECTOR, MANAGER, USER] de una acción que requiere permiso de `kind`. */
+function codesFor(ok: number, rel: Relation, kind: 'edit' | 'assign'): Expected {
+  const forRole = (i: 0 | 1) => (!rel.view[i] ? 404 : rel[kind][i] ? ok : 403);
+  return [401, ok, 403, forRole(0), forRole(1)];
+}
+
+const visibleCodes = (rel: Relation): Expected => [
+  401,
+  200,
+  200,
+  rel.view[0] ? 200 : 404,
+  rel.view[1] ? 200 : 404,
+];
+
+interface IncidentEndpoint {
+  name: string;
+  method: 'GET' | 'PATCH' | 'POST';
+  path: (id: string) => string;
+  body?: (h: Harness, rel: Relation) => unknown;
+  expected: (rel: Relation) => Expected;
+}
+
+const INCIDENT_ENDPOINTS: IncidentEndpoint[] = [
+  {
+    name: 'CA-03.6: ver el detalle',
+    method: 'GET',
+    path: (id) => `/api/incidents/${id}`,
+    expected: visibleCodes,
+  },
+  {
+    name: 'CA-03.9: editar campos',
+    method: 'PATCH',
+    path: (id) => `/api/incidents/${id}`,
+    body: () => ({ title: 'Título editado' }),
+    expected: (rel) => codesFor(200, rel, 'edit'),
+  },
+  {
+    // La forma del cuerpo se valida antes de buscar la incidencia (no revela nada): 400 a todos con sesión.
+    name: 'CA-03.9: cuerpo vacío al editar (400 con sesión, antes que 403/404)',
+    method: 'PATCH',
+    path: (id) => `/api/incidents/${id}`,
+    body: () => ({}),
+    expected: () => [401, 400, 400, 400, 400],
+  },
+  {
+    name: 'CA-03.10: listar candidatos a asignar',
+    method: 'GET',
+    path: (id) => `/api/incidents/${id}/assignees`,
+    expected: (rel) => codesFor(200, rel, 'assign'),
+  },
+  {
+    name: 'CA-03.10: asignar',
+    method: 'POST',
+    path: (id) => `/api/incidents/${id}/assign`,
+    body: (h, rel) => ({ assigneeId: assigneeFor(h, rel) }),
+    expected: (rel) => codesFor(200, rel, 'assign'),
+  },
+  {
+    name: 'CA-03.10: asignar a un usuario de otro dpto. (400 solo si puede asignar)',
+    method: 'POST',
+    path: (id) => `/api/incidents/${id}/assign`,
+    body: (h, rel) => ({ assigneeId: rel.type === 'TRANSPORT' ? h.calUserId : h.userId.USER }),
+    expected: (rel) => codesFor(400, rel, 'assign'),
+  },
+];
+
+describe('CA-03.11: matriz de autorización de /api/incidents por relación con la incidencia', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await startHarness();
+  }, 60_000);
+  afterAll(async () => {
+    await h.close();
+  });
+
+  const cases = INCIDENT_ENDPOINTS.flatMap((endpoint) =>
+    RELATIONS.flatMap((rel) =>
+      WHO.map((who, i) => ({ endpoint, rel, who, status: endpoint.expected(rel)[i] as number })),
+    ),
+  );
+
+  it.each(
+    cases.map((c) => [c.endpoint.name, c.endpoint.method, c.rel.name, c.who, c.status, c] as const),
+  )('%s · %s · incidencia %s · %s → %i', async (_n, _m, _r, _w, status, c) => {
+    const id = await createRelated(h, c.rel);
+    const response = await h.api.call(c.endpoint.method, c.endpoint.path(id), {
+      token: c.who === 'none' ? undefined : h.api.tokens[c.who],
+      payload: c.endpoint.body?.(h, c.rel),
+    });
+    expect(response.statusCode).toBe(status);
+  });
+
+  // Incidencia inexistente o con id que no es UUID: 404 para todos los que tienen sesión.
+  it.each(
+    [MISSING_ID, 'no-es-uuid'].flatMap((id) =>
+      INCIDENT_ENDPOINTS.filter((e) => !e.name.startsWith('CA-03.9: cuerpo vacío')).flatMap((e) =>
+        ROLES.map((role) => [e.name, e.method, id, role] as const),
+      ),
+    ),
+  )('CA-03.6: %s · %s · id %s · %s → 404', async (name, method, id, role) => {
+    const endpoint = INCIDENT_ENDPOINTS.find((e) => e.name === name && e.method === method)!;
+    const response = await h.api.call(method, endpoint.path(id), {
+      token: h.api.tokens[role],
+      payload: endpoint.body?.(h, RELATIONS[0]!),
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
+  it.each([
+    ['ADMIN', 201],
+    ['DIRECTOR', 403],
+    ['MANAGER', 201],
+    ['USER', 201],
+  ] as const)('CA-03.5: %s crea una incidencia → %i', async (role, status) => {
+    const response = await h.api.call('POST', '/api/incidents', {
+      token: h.api.tokens[role],
+      payload: validIncidentBody(h.typeId.TRANSPORT!),
+    });
+    expect(response.statusCode).toBe(status);
+  });
+
+  it('CA-03.5: crear sin sesión → 401', async () => {
+    const response = await h.api.call('POST', '/api/incidents', {
+      payload: validIncidentBody(h.typeId.TRANSPORT!),
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it.each([
+    ['ADMIN', 400],
+    ['DIRECTOR', 403],
+    ['MANAGER', 400],
+    ['USER', 400],
+  ] as const)('CA-03.5: %s con cuerpo inválido al crear → %i', async (role, status) => {
+    const response = await h.api.call('POST', '/api/incidents', {
+      token: h.api.tokens[role],
+      payload: { title: '' },
+    });
+    expect(response.statusCode).toBe(status);
+  });
+
+  it('CA-03.2: catálogo de tipos de incidencia sin sesión → 401', async () => {
+    expect((await h.api.call('GET', '/api/incident-types')).statusCode).toBe(401);
+  });
+
+  it.each(ROLES)('CA-03.2: %s consulta el catálogo de tipos → 200', async (role) => {
+    const response = await h.api.call('GET', '/api/incident-types', { token: h.api.tokens[role] });
+    expect(response.statusCode).toBe(200);
+  });
+
+  it('CA-03.7: listar sin sesión → 401', async () => {
+    expect((await h.api.call('GET', '/api/incidents')).statusCode).toBe(401);
+  });
+
+  it.each(ROLES)('CA-03.7: %s lista incidencias → 200', async (role) => {
+    const response = await h.api.call('GET', '/api/incidents', { token: h.api.tokens[role] });
+    expect(response.statusCode).toBe(200);
+  });
+});
+
+describe('CA-03.11: el listado solo incluye incidencias visibles', () => {
+  let h: Harness;
+  const ids: string[] = [];
+  beforeAll(async () => {
+    h = await startHarness();
+    for (const rel of RELATIONS) ids.push(await createRelated(h, rel));
+  }, 60_000);
+  afterAll(async () => {
+    await h.close();
+  });
+
+  async function listed(role: Role, query = ''): Promise<{ ids: string[]; total: number }> {
+    const response = await h.api.call('GET', `/api/incidents?${query}`, {
+      token: h.api.tokens[role],
+    });
+    expect(response.statusCode).toBe(200);
+    const json = response.json() as { items: { id: string }[]; total: number };
+    return { ids: json.items.map((i) => i.id), total: json.total };
+  }
+
+  it.each([
+    ['ADMIN', () => RELATIONS.map(() => true)],
+    ['DIRECTOR', () => RELATIONS.map(() => true)],
+    ['MANAGER', () => RELATIONS.map((r) => r.view[0])],
+    ['USER', () => RELATIONS.map((r) => r.view[1])],
+  ] as const)(
+    'CA-03.7: el listado de %s contiene exactamente las visibles',
+    async (role, visible) => {
+      const expected = ids.filter((_id, i) => visible()[i]);
+      const result = await listed(role);
+      expect([...result.ids].sort()).toEqual([...expected].sort());
+      expect(result.total).toBe(expected.length);
+    },
+  );
+
+  it.each([
+    ['MANAGER', 0],
+    ['USER', 1],
+  ] as const)(
+    'CA-03.8: %s no amplía lo visible filtrando por un departamento ajeno',
+    async (role, index) => {
+      const [cal] = await h.database.db
+        .select()
+        .from(departments)
+        .where(eq(departments.code, 'CAL'));
+      const result = await listed(role, `departmentId=${cal!.id}`);
+      const expected = ids.filter(
+        (_id, i) => RELATIONS[i]!.type === 'QUALITY' && RELATIONS[i]!.view[index],
+      );
+      expect([...result.ids].sort()).toEqual([...expected].sort());
+    },
+  );
+});
+
+describe('CA-03.11: coherencia de allowedActions con lo que la API permite', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await startHarness();
+  }, 60_000);
+  afterAll(async () => {
+    await h.close();
+  });
+
+  const cases = RELATIONS.flatMap((rel) => ROLES.map((role) => [rel.name, role, rel] as const));
+
+  it.each(cases)(
+    'CA-03.6: incidencia %s · %s: lo anunciado se puede ejecutar (2xx) y lo no anunciado da 403',
+    async (_name, role, rel) => {
+      const token = h.api.tokens[role];
+      const detail = await h.api.call('GET', `/api/incidents/${await createRelated(h, rel)}`, {
+        token,
+      });
+      if (detail.statusCode === 404) {
+        // no visible: no hay acciones que anunciar; y solo puede ocurrir si el Responsable o el Usuario no la ven
+        expect(role === 'MANAGER' ? rel.view[0] : role === 'USER' ? rel.view[1] : true).toBe(false);
+        return;
+      }
+      expect(detail.statusCode).toBe(200);
+      const actions = (detail.json() as { allowedActions: string[] }).allowedActions;
+
+      const edit = await h.api.call('PATCH', `/api/incidents/${await createRelated(h, rel)}`, {
+        token,
+        payload: { title: 'Título editado' },
+      });
+      expect(edit.statusCode).toBe(actions.includes('update') ? 200 : 403);
+
+      const assignId = await createRelated(h, rel);
+      const assign = await h.api.call('POST', `/api/incidents/${assignId}/assign`, {
+        token,
+        payload: { assigneeId: assigneeFor(h, rel) },
+      });
+      expect(assign.statusCode).toBe(actions.includes('assign') ? 200 : 403);
+      const candidates = await h.api.call('GET', `/api/incidents/${assignId}/assignees`, { token });
+      expect(candidates.statusCode).toBe(actions.includes('assign') ? 200 : 403);
+    },
+  );
+});
+
+describe('CA-03.2/CA-03.9: campos que decide el servidor enviados por el cliente', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await startHarness();
+  }, 60_000);
+  afterAll(async () => {
+    await h.close();
+  });
+
+  it('CA-03.9: PATCH ignora status, typeId, assignedTo y code', async () => {
+    const id = await createRelated(h, RELATIONS[0]!);
+    const [before] = await h.database.db.select().from(incidents).where(eq(incidents.id, id));
+    const response = await h.api.call('PATCH', `/api/incidents/${id}`, {
+      token: h.api.tokens.ADMIN,
+      payload: {
+        title: 'Solo cambia el título',
+        status: 'CLOSED',
+        typeId: h.typeId.QUALITY,
+        assignedTo: h.userId.USER,
+        code: 'INC-1999-0001',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    const [row] = await h.database.db.select().from(incidents).where(eq(incidents.id, id));
+    expect(row).toMatchObject({ status: 'OPEN', typeId: h.typeId.TRANSPORT, assignedTo: null });
+    expect(row!.code).toBe(before!.code);
+    expect(row!.title).toBe('Solo cambia el título');
+  });
+
+  it('CA-03.2: POST ignora status, code, createdBy, departmentId y assignedTo', async () => {
+    const [cal] = await h.database.db.select().from(departments).where(eq(departments.code, 'CAL'));
+    const [log] = await h.database.db.select().from(departments).where(eq(departments.code, 'LOG'));
+    const response = await h.api.call('POST', '/api/incidents', {
+      token: h.api.tokens.USER,
+      payload: {
+        ...validIncidentBody(h.typeId.TRANSPORT!),
+        status: 'CLOSED',
+        code: 'INC-1999-0001',
+        createdBy: h.userId.ADMIN,
+        assignedTo: h.userId.ADMIN,
+        departmentId: cal!.id,
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    const id = (response.json() as { id: string }).id;
+    const [row] = await h.database.db.select().from(incidents).where(eq(incidents.id, id));
+    expect(row).toMatchObject({
+      status: 'OPEN',
+      createdBy: h.userId.USER,
+      assignedTo: null,
+      departmentId: log!.id,
+    });
+    expect(row!.code).toMatch(/^INC-\d{4}-\d{4}$/);
+    expect(row!.code).not.toBe('INC-1999-0001');
   });
 });

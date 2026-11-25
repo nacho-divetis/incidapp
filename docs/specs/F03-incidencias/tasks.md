@@ -46,7 +46,7 @@
 - Notas: skill `componente` para las páginas. Rutas, queries y claves de caché según `plan.md`. "Incidencias" en `navItemsFor` para todos; `/incidencias/nueva` con `RequireAction createIncident`. Las acciones del detalle salen solo de `Incident.allowedActions` (la web no mira el rol). Filtros en el estado de la página, vuelta a la página 1 al cambiarlos y buscador con espera (~300 ms). Errores de la API en español sin perder lo escrito (400 → `fieldErrors`). Avisos de éxito por `location.state`. Tests de páginas con `fetch` simulado. **Punto de control:** la revisión de la UI de F03 en el navegador por el usuario se hace junto con la de F04 (T-04.04), salvo que la pida antes.
 
 ### T-03.05 · Ampliar la matriz de autorización con los endpoints de incidencias
-- Estado: pendiente
+- Estado: hecha
 - Agente: qa-tester · Revisores: code-reviewer
 - Depende de: T-03.02
 - Paralelizable con: T-03.04, T-04.02
