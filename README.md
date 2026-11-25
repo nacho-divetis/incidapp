@@ -24,6 +24,10 @@ Un usuario por rol, todos con la contraseña **`Demo2026!`**. La pantalla de ini
 
 La contraseña es pública **a propósito**: la demo solo contiene datos ficticios (dominio reservado `.test` y nombres inventados) y está pensada para que cualquiera la pruebe con cada rol. Por defecto, tras 10 intentos de inicio de sesión desde una misma IP en 15 minutos, la API responde 429 durante un rato (configurable con `LOGIN_RATE_LIMIT_MAX` y `LOGIN_RATE_LIMIT_WINDOW_MS`).
 
+### Gestión de usuarios
+
+El Admin gestiona los usuarios desde **Usuarios** (alta, edición, desactivación y reactivación, y restablecimiento de la contraseña). Los **usuarios demo están protegidos**: solo se puede cambiar su nombre, no se pueden desactivar ni cambiar su contraseña, para que la demo siga funcionando para todos. Para probar la gestión completa, crea usuarios nuevos (con un email del dominio `.test`). Desactivar un usuario o restablecer su contraseña cierra sus sesiones abiertas.
+
 ## Stack
 
 | Parte | Tecnología |
