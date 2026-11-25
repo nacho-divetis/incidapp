@@ -45,6 +45,14 @@ export const unusedAdmin: Pick<AppDeps, 'users' | 'departments' | 'incidents' | 
   departments: { listDepartments: unused('listDepartments') },
 };
 
+/** Cuerpo válido de `POST /api/incidents` para un tipo dado (ayuda de la matriz de CA-03.11). */
+export const validIncidentBody = (typeId: string, title = 'Incidencia de prueba') => ({
+  title,
+  description: 'Descripción de la incidencia de prueba.',
+  typeId,
+  priority: 'MEDIUM',
+});
+
 // --- Cliente para las pruebas de autorización (T-02.04) ---------------------------------------------
 
 export const TEST_CSRF_HEADERS = { 'x-requested-with': 'fetch' } as const;
