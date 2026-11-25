@@ -156,6 +156,29 @@ describe('ConfirmDialog', () => {
     expect(opener).toHaveFocus();
   });
 
+  it('confirmDisabled: confirmar no hace nada, pero "Cancelar" y Escape siguen cerrando', async () => {
+    const onConfirm = vi.fn();
+    const onOpenChange = vi.fn();
+    render(
+      <ConfirmDialog
+        {...TEXTS}
+        open
+        confirmDisabled
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    const confirm = screen.getByRole('button', { name: 'Desactivar' });
+    expect(confirm).toBeDisabled();
+    await userEvent.click(confirm);
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeEnabled();
+    await userEvent.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
   it('muestra el contenido extra dentro del diálogo', () => {
     render(
       <ConfirmDialog {...TEXTS} open onOpenChange={vi.fn()} onConfirm={vi.fn()}>

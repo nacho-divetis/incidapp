@@ -26,7 +26,7 @@
 - Notas: skill `caso-de-uso`. Sin migración (comprobar que `npm run db:generate` no genera nada). `allowedTransitions` en `presentIncident` (un solo sitio: así el detalle y todas las mutaciones de F03 y F04 la devuelven), filtrando `transitionsFrom(status)` con `canOnIncident(…, 'operationalTransition' | 'managementTransition')`; `allowedActions` sigue siendo `update`/`assign`. `changeIncidentStatus` con el orden 404 → 409 (`InvalidTransitionError` → `ConflictError` "No se puede pasar de Rechazada a En curso.") → 403 → 400 ("Esta transición requiere un comentario."); cambio + `resolvedAt`/`closedAt` (última fecha) + evento `STATUS_CHANGED` en la `UnitOfWork`, con test de reversión. Historial: `IncidentEventReader` con solo `listByIncident` (orden `created_at`, `id`); test de que ningún puerto ni adaptador del historial expone `update`/`delete`; test de API de que cada mutación de F03 y F04 deja exactamente un evento (o ninguno si no cambia nada). Alinea con `IncidentEvent` los datos que escribe F03 para `UPDATED`/`ASSIGNED` si difieren.
 
 ### T-04.03 · Crear los componentes de estado e historial: acciones de estado, diálogo de transición y línea de tiempo
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-04.01, T-03.03
 - Paralelizable con: T-03.02, T-03.04, T-04.02

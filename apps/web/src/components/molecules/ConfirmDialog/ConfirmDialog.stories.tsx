@@ -71,6 +71,17 @@ export const ConError: Story = {
   },
 };
 
+/** Confirmar deshabilitado (todavía no hay nada que confirmar); "Cancelar" sigue disponible. */
+export const ConfirmarDeshabilitado: Story = {
+  args: {
+    tone: 'default',
+    title: '¿Reactivar a Marta Gil?',
+    description: 'Podrá volver a iniciar sesión con su contraseña actual.',
+    confirmLabel: 'Reactivar',
+    confirmDisabled: true,
+  },
+};
+
 /** Cerrado, con su botón: al cerrar, el foco vuelve al botón. */
 export const ConBotón: Story = {
   args: {
