@@ -242,7 +242,7 @@ Cada escena es un apartado `### Exx · Título` con estos campos, siempre en est
 - **Acciones:**
   1. Cerrar sesión e iniciar sesión como `usuario@incidapp.test`.
   2. Ir a `DEMO/admin/usuarios`; esperar el texto **No tienes permiso para ver esta página.** y mantener 3 s.
-  3. Ir a `urlOtroDepartamento`; esperar el título **Página no encontrada** y mantenerlo.
+  3. Ir a `urlOtroDepartamento`; esperar el aviso **Incidencia no encontrada.** y mantenerlo.
 - **Narración:**
   > ¿Y si Pablo intenta saltarse las reglas? Si escribe la dirección de la gestión de usuarios, ve una página de acceso denegado. Si pega el enlace de esa incidencia de Calidad, la aplicación responde que no existe. Ni siquiera revela que está ahí. Es un error cuatrocientos cuatro, y no un cuatrocientos tres.
 - **Subtítulo:** Sin permiso → 403 · no visible → 404 (no se revela que existe)

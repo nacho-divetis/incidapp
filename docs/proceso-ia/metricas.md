@@ -2,7 +2,7 @@
 
 Cifras del proyecto calculadas con `git` y los `tasks.md`, cada una con el comando que la reproduce. Se ejecutan desde la raíz del repositorio con Git Bash o cualquier *shell* POSIX.
 
-> **Fecha de corte:** 25/11/2026, con F00–F04 en producción y F07 (entrega) en curso. Se recalculan al cerrar la entrega (T-07.08) con el *script* del final.
+> **Fecha de corte:** 25/11/2026, con F00–F04 en producción y F07 (entrega) cerrada salvo la comprobación final (T-07.08). Se recalculan al cerrar la entrega (T-07.08) con el *script* del final.
 
 ## Resumen
 
@@ -11,14 +11,14 @@ Cifras del proyecto calculadas con `git` y los `tasks.md`, cada una con el coman
 | Features especificadas (SDD) | **6** (F00–F04 y F07) | `ls -d docs/specs/F*/ \| wc -l` |
 | Features fuera del TFM | 2 (F05 adjuntos, F06 auditoría y cuadro de mando) | [requisitos.md § Trabajo futuro](../requisitos.md#trabajo-futuro) |
 | Criterios de aceptación | **98** | `grep -h '^#### CA-' docs/specs/*/spec.md \| wc -l` |
-| Tareas | **42** | `grep -h '^### T-' docs/specs/*/tasks.md \| wc -l` |
-| Tareas hechas | **33** (todas las de F00–F04) | `grep -h '^- Estado: hecha' docs/specs/*/tasks.md \| wc -l` |
+| Tareas | **43** | `grep -h '^### T-' docs/specs/*/tasks.md \| wc -l` |
+| Tareas hechas | **41** (todas las de F00–F04 y 8 de F07; queda T-07.08, la comprobación final) | `grep -h '^- Estado: hecha' docs/specs/*/tasks.md \| wc -l` |
 | Tareas descartadas | 1 (T-07.03, CI ampliada) | `grep -h '^- Estado: descartada' docs/specs/*/tasks.md \| wc -l` |
-| Commits (todas las ramas) | **60**, de ellos 11 *merges* | `git log --all --oneline \| wc -l` · `git log --all --merges --oneline \| wc -l` |
-| Commits sin *merge* que citan su tarea `[T-xx.yy]` | **42 de 49** (el resto: 4 de specs, la configuración inicial y 2 sin tarea) | `git log --all --no-merges --format=%s \| grep -c '\[T-'` |
-| PR integrados en `main` (*squash merge*) | **6** | `gh pr list --state merged --limit 100 \| wc -l` |
-| Commits en `main` | **7** | `git log main --oneline \| wc -l` |
-| Tests | **2956** (shared 233 · api 2066 · web 657) en 137 archivos | `npm test 2>&1 \| grep -E '^ +Tests'` |
+| Commits (todas las ramas) | **72**, de ellos 13 *merges* | `git log --all --oneline \| wc -l` · `git log --all --merges --oneline \| wc -l` |
+| Commits sin *merge* que citan su tarea `[T-xx.yy]` | **52 de 59** (el resto: 4 de specs, la configuración inicial y 2 sin tarea) | `git log --all --no-merges --format=%s \| grep -c '\[T-'` |
+| PR integrados en `main` (*squash merge*) | **7** (el 8.º es el de esta documentación) | `gh pr list --state merged --limit 100 \| wc -l` |
+| Commits en `main` | **8** | `git log main --oneline \| wc -l` |
+| Tests | **2979** unitarios y de integración (shared 233 · api 2087 · web 659) + **15** E2E con Playwright | `npm test 2>&1 \| grep -E '^ +Tests'` |
 | *Stories* de Storybook | **41** (40 componentes + tokens) | `find apps/web/src -name '*.stories.tsx' \| wc -l` |
 | ADR | **9** | `ls docs/adr/0*.md \| wc -l` |
 
@@ -27,7 +27,7 @@ Cifras del proyecto calculadas con `git` y los `tasks.md`, cada una con el coman
 | Agente | Tareas |
 |---|---|
 | `backend-dev` | 14 |
-| `frontend-dev` | 13 |
+| `frontend-dev` | 14 |
 | principal (despliegue, documentación, integración) | 11 |
 | `qa-tester` | 4 |
 
@@ -56,7 +56,7 @@ De los 5 hallazgos medios de las notas, 3 se corrigieron (T-00.03, T-01.02, T-02
 | Día | Commits |
 |---|---|
 | 23/11/2026 | 28 |
-| 25/11/2026 | 32 |
+| 25/11/2026 | 44 |
 
 ```bash
 git log --all --format='%ad' --date=short | sort | uniq -c
@@ -80,7 +80,7 @@ echo "hallazgos:    $(grep -c '^| T-' docs/proceso-ia/hallazgos-revisores.md)"
 npm test 2>&1 | grep -E '^ +(Test Files|Tests)'
 ```
 
-**Nota:** `git log --all` cuenta también las ramas locales de trabajo (las de los *worktrees* de tareas en paralelo). En un clon nuevo solo se ven las ramas publicadas, así que el total puede ser algo menor (58 commits a la fecha de corte, con `git log --remotes`).
+**Nota:** `git log --all` cuenta también las ramas locales de trabajo (las de los *worktrees* de tareas en paralelo). En un clon nuevo solo se ven las ramas publicadas, así que el total puede ser algo menor (66 commits a la fecha de corte, con `git log --remotes`).
 
 ## Cómo se ha usado la IA
 

@@ -68,7 +68,7 @@ Alta, edición (nombre, rol y departamentos), desactivación y reactivación, y 
 
 Componentes en *atomic design* (tokens → átomos → moléculas → organismos → plantillas → páginas), cada uno con su *story* en Storybook y comprobados con el addon de accesibilidad.
 
-> **PENDIENTE (T-07.04):** captura `docs/capturas/storybook.png` (Storybook en local)
+![Storybook en local: diálogo de cambio de estado con comentario obligatorio](docs/capturas/storybook.png)
 
 ### Alcance recortado
 

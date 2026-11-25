@@ -46,7 +46,7 @@
 - Notas: **antes del viernes 27/11 a las 20:00.** Decisión 3: **resetear la base de Neon antes del merge** (pide confirmación; se pierden las incidencias de prueba de T-04.06, las sesiones y la auditoría; migraciones y *seed* se ejecutan al arrancar). Abrir el PR → `main` y *squash merge* (piden confirmación). Hacer aquí las capturas del README y de las slides (login, listado con filtros, detalle con línea de tiempo, diálogo de transición, gestión de usuarios y Storybook en local), en PNG de < 300 KB.
 
 ### T-07.05 · Completar el README y escribir docs/master.md
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: code-reviewer
 - Depende de: T-07.04
 - Paralelizable con: T-07.06, T-07.07
@@ -56,7 +56,7 @@
 - Notas: skill `entrega-tfm`, pasos 1 y 2. README: aviso de Render dormido junto a la URL, usuarios demo con contraseña, URLs de demo, slides y vídeo, Storybook en local (`npm run storybook`), despliegue (Render + Neon + `render.yaml`), estructura, funcionalidades con capturas, alcance recortado (sin adjuntos ni cuadro de mando) y sección "Cómo se aplica el máster". `master.md`: módulos 1–9 con evidencia y enlace; M1 enlaza el diagrama de estados y el de capas de `docs/diagramas.md`; M6, Storybook solo en local; M7, `render.yaml` y Render + Neon, con Docker como trabajo futuro. **Decisión 4:** ajustar `docs/requisitos.md` (RNF-03 y RNF-04: Storybook solo en local; Docker y la CI ampliada como trabajo futuro).
 
 ### T-07.06 · Documentar el proceso con IA: harness, flujo de una tarea y métricas
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: code-reviewer
 - Depende de: T-07.04
 - Paralelizable con: T-07.05, T-07.07
@@ -86,7 +86,7 @@
 - Notas: skill `entrega-tfm`, pasos 4 y 6. Necesita la URL pública del vídeo de T-07.09. Los valores del formulario (URL del repo, demo, slides, vídeo y usuario y contraseña de prueba, el de Admin) se entregan en la respuesta, **no** en el repo (el nombre y el email del alumno no se versionan). Abrir la demo justo antes de enviar para despertar Render. PR → `main` y *squash merge* (piden confirmación).
 
 ### T-07.09 · Generar el vídeo de la demo
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: —
 - Depende de: T-07.04, T-07.07
 - Paralelizable con: T-07.05, T-07.06
