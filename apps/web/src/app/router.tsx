@@ -2,14 +2,20 @@
 //
 // - `/login`: solo sin sesión (con sesión, `RedirectIfAuthenticated` lleva a la ruta de vuelta).
 // - Rutas protegidas: `RequireSession` (sin sesión → `/login?next=…`) + `ProtectedLayout`
-//   (`AppLayout` con la cabecera del usuario).
+//   (`AppLayout` con la cabecera del usuario y la navegación).
+// - Gestión de usuarios (`/admin/usuarios…`): además, `RequireAction('manageUsers')`; sin la acción
+//   pinta `ForbiddenPage` sin montar la página (CA-02.17).
 // - Cualquier otra ruta: `NotFoundPage`, para todos.
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { HomePage } from '../pages/HomePage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { UserCreatePage } from '../pages/UserCreatePage';
+import { UserEditPage } from '../pages/UserEditPage';
+import { UsersPage } from '../pages/UsersPage';
 import { ProtectedLayout } from './ProtectedLayout';
-import { RedirectIfAuthenticated, RequireSession } from './guards';
+import { RedirectIfAuthenticated, RequireAction, RequireSession } from './guards';
+import { HOME_PATH, USERS_PATH } from './paths';
 import { LOGIN_PATH, loginPath } from './safe-next-path';
 
 export const routes: RouteObject[] = [
@@ -22,7 +28,18 @@ export const routes: RouteObject[] = [
     children: [
       {
         element: <ProtectedLayout />,
-        children: [{ path: '/', element: <HomePage /> }],
+        children: [
+          { path: HOME_PATH, element: <HomePage /> },
+          {
+            path: USERS_PATH,
+            element: <RequireAction action="manageUsers" />,
+            children: [
+              { index: true, element: <UsersPage /> },
+              { path: 'nuevo', element: <UserCreatePage /> },
+              { path: ':id', element: <UserEditPage /> },
+            ],
+          },
+        ],
       },
     ],
   },

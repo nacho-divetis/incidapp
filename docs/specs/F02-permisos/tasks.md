@@ -44,17 +44,17 @@
 - Notas: tabla `it.each` `{ método, endpoint, sin sesión, ADMIN, DIRECTOR, MANAGER, USER }` con todos los endpoints de F02 (`/api/users…`, `/api/departments`), con `X-Requested-With` y cuerpos válidos para que el código dependa solo del permiso. Comprueba también que un no-Admin recibe 403 (no 404) con un id inexistente. Estructura pensada para que F03 y F04 añadan filas con incidencias visibles y no visibles. Revisa además la tabla de la política de T-02.02 contra `docs/permisos.md` y propone (no corrige) las diferencias que encuentre. No toca código de producción.
 
 ### T-02.05 · Instalar Radix y crear el átomo `Table` y las moléculas `CheckboxGroup`, `ConfirmDialog` y `PageHeader`
-- Estado: en curso
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-02.01
 - Paralelizable con: T-02.02, T-02.03
 - Cubre: CA-02.18 (tabla accesible), CA-02.19 (departamentos como casillas), CA-02.20 (confirmación)
 - Archivos: apps/web/package.json, package-lock.json, apps/web/src/components/atoms/Table/…, apps/web/src/components/molecules/{CheckboxGroup,ConfirmDialog,PageHeader}/…, índices de nivel
 - Verificación: npm run lint && npm test -w @incidapp/web && npm run build-storybook
-- Notas: skill `componente`, en un worktree de `.worktrees/`. Dependencia `@radix-ui/react-alert-dialog` (MIT, aprobada por el usuario el 23/11; la instalación pide confirmación). Props según `plan.md`. `Table` con partes semánticas, `scope` en las cabeceras y desplazamiento horizontal propio en móvil. `CheckboxGroup` con `fieldset`/`legend` y el error asociado. `ConfirmDialog` con el foco inicial en "Cancelar" y `tone` danger. Sin textos de negocio fijos ni `@incidapp/shared` en el átomo. Cada uno con story y test; axe sin violaciones.
+- Notas: skill `componente`, en un worktree de `.worktrees/`. Dependencia `@radix-ui/react-alert-dialog` (MIT, aprobada por el usuario el 23/11; la instalación pide confirmación). Props según `plan.md`. `Table` con partes semánticas, `scope` en las cabeceras y desplazamiento horizontal propio en móvil. `CheckboxGroup` con `fieldset`/`legend` y el error asociado. `ConfirmDialog` con el foco inicial en "Cancelar" y `tone` danger. Sin textos de negocio fijos ni `@incidapp/shared` en el átomo. Cada uno con story y test; axe sin violaciones. Hecha: `@radix-ui/react-alert-dialog@^1.2.1` (MIT). `Table` añade `TableCaption`, `containerClassName` y `regionLabel` (región enfocable para tablas anchas sin elementos enfocables; `UserTable` no la necesita porque tiene enlaces). `CheckboxGroup` con `required`, `emptyMessage`, `columns` (1–2) y `ref` al `fieldset`. `ConfirmDialog` con `trigger` y `children` opcionales; **confirmar no cierra**: lo cierra quien lo usa con `open=false` al terminar; con `isConfirming` no se puede cerrar. axe sin violaciones en las 21 stories (jsdom) y en Chrome a 320 y 1024 px. 339 tests en web. Revisión: aprobada (1 bajo sin cambios: `Table` ancha sin `regionLabel` ni enfocables da aviso de axe; documentado en el JSDoc). **Para T-02.06:** tras desactivar, llevar el foco al aviso o al botón nuevo; el `Alert` de error dentro del diálogo se pasa desde el organismo (las moléculas no se importan entre sí). Aviso: `architecture.test.ts` puede superar los 5 s en frío.
 
 ### T-02.06 · Crear los organismos `MainNav`, `UserTable`, `UserForm` y `UserAccountActions`
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-02.05
 - Paralelizable con: T-02.02, T-02.03
@@ -64,13 +64,13 @@
 - Notas: skill `componente`, en el mismo worktree que T-02.05. Presentacionales (sin queries, router ni sesión); props según `plan.md`. `UserForm` valida con `CreateUserInput`/`UpdateUserInput` de `shared`, muestra `fieldErrors` del servidor (409 de email) y deshabilita, con una explicación, los campos que `allowedActions` no permite. `UserAccountActions` muestra cada acción solo si su `UserAction` está en `allowedActions`; desactivar pasa por `ConfirmDialog`; el restablecimiento pide la contraseña dos veces. Stories con los estados (vacío, errores, enviando, campos bloqueados, usuario demo, uno mismo, desactivado) y tests de interacción.
 
 ### T-02.07 · Montar las páginas de usuarios, la guarda por acción y la navegación
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer, security-reviewer
 - Depende de: T-02.03, T-02.06
 - Paralelizable con: T-02.04
 - Cubre: CA-02.16, CA-02.17, CA-02.18, CA-02.19, CA-02.20, CA-02.21
 - Archivos: apps/web/src/queries/{users.ts,departments.ts} (+ tests), apps/web/src/app/{router.tsx,guards.tsx,ProtectedLayout.tsx,nav-items.ts} (+ tests), apps/web/src/pages/{UsersPage,UserCreatePage,UserEditPage,ForbiddenPage}/…
-- Verificación: npm run lint && npm test -w @incidapp/web && npm run build && prueba manual con `npm run dev` (como Admin: crear, editar, desactivar, reactivar y restablecer; como Usuario: no ve "Usuarios" y `/admin/usuarios` muestra "No tienes permiso")
+- Verificación: npm run lint && npm test -w @incidapp/web && npm run build && prueba manual con `npm run dev` (como Admin: crear, editar, desactivar, reactivar y restablecer; como Usuario: no ve "Usuarios" y `/admin/usuarios` muestra "No tienes permiso") **Revisión:** hallazgo medio corregido (la `key` del formulario de edición incluye `dataUpdatedAt` para no quedarse con datos obsoletos). La prueba manual se hace en producción en T-02.08.
 - Notas: skill `componente` para las páginas. `RequireAction({ action: 'manageUsers' })` pinta `ForbiddenPage` sin montar la página. `navItemsFor(allowedActions, pathname)` en `app/` (no mira el rol). Mutaciones que actualizan `['users', id]` e invalidan `['users']` (y `me` si el usuario editado es el actual). 409 de email → `fieldErrors.email`. Aviso de éxito por `location.state`. Tests de páginas con `fetch` simulado.
 
 ### T-02.08 · Desplegar F02 en Render y comprobar la gestión de usuarios
