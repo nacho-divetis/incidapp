@@ -37,6 +37,17 @@ export const DEMO_ADMIN: CurrentUser = {
   departments: [
     { id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d', code: 'ADM', name: 'Administración' },
   ],
+  allowedActions: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],
+};
+
+/** Usuario sin la acción de gestionar usuarios (rol Usuario). */
+export const DEMO_USER: CurrentUser = {
+  id: '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a',
+  email: 'usuario@incidapp.test',
+  name: 'Pablo Moreno',
+  role: 'USER',
+  departments: [{ id: '1b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e', code: 'LOG', name: 'Logística' }],
+  allowedActions: ['createIncident'],
 };
 
 /**

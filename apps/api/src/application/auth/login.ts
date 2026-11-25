@@ -1,6 +1,7 @@
 import { EMAIL_MAX_LENGTH, type CurrentUser } from '@incidapp/shared';
 import { sessionExpiresAt } from '../../domain/auth/session';
 import { normalizeEmail, type UserAccount } from '../../domain/auth/user';
+import { globalActionsFor } from '../authorization/authorization-policy';
 import { UnauthorizedError } from '../errors';
 import type { AuditLogWriter } from '../ports/audit-log-writer';
 import type { Clock } from '../ports/clock';
@@ -131,6 +132,7 @@ export const makeLogin = (deps: LoginDeps): Login => {
       createdAt: now,
     });
 
-    return { user: record.user, token, expiresAt };
+    const user: CurrentUser = { ...record.user, allowedActions: globalActionsFor(record.user) };
+    return { user, token, expiresAt };
   };
 };

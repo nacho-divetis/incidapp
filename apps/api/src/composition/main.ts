@@ -21,6 +21,8 @@ const container = await createContainer(config);
 const app = await buildApp({
   getHealth: container.getHealth,
   auth: container.auth,
+  users: container.users,
+  departments: container.departments,
   webDistDir: config.webDistDir,
   enforceHttps: config.enforceHttps,
   trustProxyHops: config.trustProxyHops,

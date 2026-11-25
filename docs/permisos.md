@@ -73,7 +73,7 @@ El servidor ignora o rechaza en las peticiones los campos que decide él: `role`
 Precisiones a la matriz de la definición del proyecto, confirmadas por el usuario:
 
 1. Solo se puede asignar a usuarios **activos** del departamento propietario.
-2. Un Responsable, fuera de sus departamentos, tiene los permisos de Usuario sobre lo que ha creado o tiene asignado (ver, comentar, adjuntar y transiciones operativas); no puede rechazar, cerrar, reabrir ni asignar.
+2. Un Responsable, fuera de sus departamentos, tiene los permisos de Usuario sobre lo que ha creado o tiene asignado (ver, editar lo que ha creado mientras esté ABIERTA, comentar, adjuntar y transiciones operativas; aclarado el 23/11/2026); no puede rechazar, cerrar, reabrir ni asignar.
 3. Un Admin no puede desactivarse ni quitarse el rol de Admin a sí mismo: la API responde **409** con un mensaje en español.
 
 ## Cómo se prueba

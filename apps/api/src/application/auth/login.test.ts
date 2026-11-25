@@ -76,6 +76,7 @@ describe('login correcto', () => {
       name: activeUser.name,
       role: 'USER',
       departments: activeUser.departments,
+      allowedActions: ['createIncident'],
     });
     expect(result.user).not.toHaveProperty('passwordHash');
     expect(result.user).not.toHaveProperty('active');
@@ -83,6 +84,22 @@ describe('login correcto', () => {
     expect(result.token).toBe('token-1');
     expect(result.expiresAt).toEqual(new Date(NOW.getTime() + SESSION_TTL_MS));
   });
+
+  it.each([
+    ['ADMIN', ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard']],
+    ['DIRECTOR', ['viewDashboard']],
+    ['MANAGER', ['createIncident']],
+    ['USER', ['createIncident']],
+  ] as const)(
+    'CA-02.4: el usuario actual de rol %s incluye sus acciones globales %j',
+    async (role, expected) => {
+      users.users[0] = { ...activeUser, role };
+
+      const result = await login({ email: activeUser.email, password: PASSWORD, ip: IP });
+
+      expect(result.user.allowedActions).toEqual(expected);
+    },
+  );
 
   it('CA-01.1: crea la sesión guardando el identificador derivado del token, no el token', async () => {
     const { token } = await login({ email: activeUser.email, password: PASSWORD, ip: IP });

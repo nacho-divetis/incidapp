@@ -21,7 +21,9 @@ import { decorateCurrentUser } from './auth/require-session';
 import { csrfGuard } from './csrf';
 import { errorHandler } from './error-handler';
 import { authRoutes, type LoginRateLimitSettings } from './routes/auth';
+import { departmentsRoutes, type DepartmentsDeps } from './routes/departments';
 import { healthRoutes } from './routes/health';
+import { usersRoutes, type UserAdminDeps } from './routes/users';
 
 /** Casos de uso de la autenticación y límite de intentos del login. */
 export interface AuthDeps {
@@ -34,6 +36,10 @@ export interface AuthDeps {
 export interface AppDeps {
   getHealth: GetHealth;
   auth: AuthDeps;
+  /** Casos de uso de la gestión de usuarios (solo Admin). */
+  users: UserAdminDeps;
+  /** Catálogo de departamentos. */
+  departments: DepartmentsDeps;
   /** Carpeta del build de la web. Si no existe su `index.html` (desarrollo), no se sirve la SPA. */
   webDistDir?: string;
   /** Opciones del logger (pino). Por defecto, sin log (tests). */
@@ -123,6 +129,11 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   await app.register(healthRoutes({ getHealth: deps.getHealth }), { prefix: API_PREFIX });
   await app.register(authRoutes({ ...deps.auth, cookie: { secure: enforceHttps } }), {
+    prefix: API_PREFIX,
+  });
+  const { resolveSession } = deps.auth;
+  await app.register(usersRoutes({ ...deps.users, resolveSession }), { prefix: API_PREFIX });
+  await app.register(departmentsRoutes({ ...deps.departments, resolveSession }), {
     prefix: API_PREFIX,
   });
 

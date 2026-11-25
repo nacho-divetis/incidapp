@@ -1,7 +1,10 @@
 import type { AuditAction } from '@incidapp/shared';
 
-/** Valor que se guarda en `before`/`after`: un objeto serializable a JSON. */
-export type AuditData = Record<string, string | number | boolean | null>;
+/**
+ * Valor que se guarda en `before`/`after`: un objeto serializable a JSON. Admite listas de *strings*
+ * (p. ej., los códigos de los departamentos de un usuario antes y después de un cambio).
+ */
+export type AuditData = Record<string, string | number | boolean | null | readonly string[]>;
 
 /** Entrada de auditoría. Nunca contiene contraseñas, *hashes* ni *tokens*. */
 export interface AuditEntry {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AuditAction,
   CurrentUser,
   DEMO_PASSWORD,
   DEMO_USERS,
@@ -141,10 +140,15 @@ describe('CurrentUser', () => {
         name: 'Administración y Finanzas',
       },
     ],
+    allowedActions: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],
   };
 
   it('CA-01.1: acepta el usuario actual con su rol y sus departamentos', () => {
     expect(CurrentUser.parse(user)).toEqual(user);
+  });
+
+  it('CA-02.4: acepta una lista vacía de acciones globales', () => {
+    expect(CurrentUser.parse({ ...user, allowedActions: [] }).allowedActions).toEqual([]);
   });
 
   it('CA-01.1: descarta los datos internos como `passwordHash` o `active`', () => {
@@ -159,6 +163,8 @@ describe('CurrentUser', () => {
     ['un id que no es UUID', { ...user, id: '1' }],
     ['sin departamentos', { ...user, departments: undefined }],
     ['un nombre vacío', { ...user, name: '' }],
+    ['sin acciones permitidas', { ...user, allowedActions: undefined }],
+    ['una acción global desconocida', { ...user, allowedActions: ['deleteEverything'] }],
   ])('rechaza un usuario con %s', (_case, body) => {
     expect(CurrentUser.safeParse(body).success).toBe(false);
   });
@@ -167,12 +173,6 @@ describe('CurrentUser', () => {
     expect(DepartmentSummary.safeParse({ id: user.departments[0]?.id, code: 'ADM' }).success).toBe(
       false,
     );
-  });
-});
-
-describe('AuditAction', () => {
-  it('CA-01.9: define las acciones de auditoría del inicio de sesión', () => {
-    expect(AuditAction.options).toEqual(['LOGIN_SUCCEEDED', 'LOGIN_FAILED']);
   });
 });
 

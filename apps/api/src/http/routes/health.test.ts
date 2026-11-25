@@ -6,7 +6,7 @@ import type { DatabaseHandle } from '../../infrastructure/db/client';
 import { createDatabaseHealth } from '../../infrastructure/db/database-health';
 import { createTestDatabase } from '../../infrastructure/db/test-database';
 import { buildApp } from '../app';
-import { unusedAuth } from '../test-support';
+import { unusedAdmin, unusedAuth } from '../test-support';
 
 const VERSION = '0.1.0+abc1234';
 
@@ -17,6 +17,7 @@ async function appWithDatabase(): Promise<FastifyInstance> {
   database = await createTestDatabase();
   app = await buildApp({
     auth: unusedAuth,
+    ...unusedAdmin,
     getHealth: makeGetHealth({
       databaseHealth: createDatabaseHealth(database.db),
       version: VERSION,
