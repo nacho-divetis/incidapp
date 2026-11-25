@@ -8,6 +8,7 @@ import { errorResponse, jsonResponse, mockApi } from '../test/api-mock';
 import {
   INCIDENT,
   INCIDENT_DEPARTMENTS,
+  INCIDENT_EVENTS,
   INCIDENT_LIST_ITEMS,
   INCIDENT_TYPES,
   PEOPLE,
@@ -19,7 +20,9 @@ import {
   useCreateIncident,
   useIncident,
   useIncidentAssignees,
+  useIncidentEvents,
   useIncidents,
+  useTransitionIncident,
   useUpdateIncident,
 } from './incidents';
 
@@ -220,5 +223,123 @@ describe('mutaciones', () => {
       expect(result.current.error?.message).toBe('No tienes permiso para hacer esta acción.'),
     );
     expect(queryClient.getQueryData(incidentKeys.detail(INCIDENT.id))).toEqual(INCIDENT);
+  });
+});
+
+describe('useIncidentEvents', () => {
+  it('pide GET /api/incidents/:id/events con la clave del historial', async () => {
+    const route = `GET /api/incidents/${INCIDENT.id}/events`;
+    const api = mockApi({ [route]: () => jsonResponse(200, INCIDENT_EVENTS) });
+    const { queryClient, wrapper } = setup();
+
+    const { result } = renderHook(() => useIncidentEvents(INCIDENT.id), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toEqual(INCIDENT_EVENTS));
+    expect(api.callsTo(route)).toHaveLength(1);
+    expect(incidentKeys.events(INCIDENT.id)).toEqual(['incidents', INCIDENT.id, 'events']);
+    expect(queryClient.getQueryData(incidentKeys.events(INCIDENT.id))).toEqual(INCIDENT_EVENTS);
+  });
+
+  it('una respuesta sin la forma del contrato es un error', async () => {
+    mockApi({
+      [`GET /api/incidents/${INCIDENT.id}/events`]: () =>
+        jsonResponse(200, [{ ...INCIDENT_EVENTS[0], type: 'COMMENTED' }]),
+    });
+    const { wrapper } = setup();
+
+    const { result } = renderHook(() => useIncidentEvents(INCIDENT.id), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+});
+
+describe('useTransitionIncident', () => {
+  const route = `POST /api/incidents/${INCIDENT.id}/transitions`;
+  const inProgress = { ...INCIDENT, status: 'IN_PROGRESS' as const };
+
+  it('hace POST …/transitions con `to` y `comment`, guarda el detalle e invalida listados e historial', async () => {
+    const api = mockApi({ [route]: () => jsonResponse(200, inProgress) });
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(incidentKeys.detail(INCIDENT.id), INCIDENT);
+    queryClient.setQueryData(incidentKeys.list({}, 1), PAGE_1);
+    queryClient.setQueryData(incidentKeys.events(INCIDENT.id), INCIDENT_EVENTS);
+    const { result } = renderHook(() => useTransitionIncident(INCIDENT.id), { wrapper });
+
+    await act(() => result.current.mutateAsync({ to: 'IN_PROGRESS', comment: 'Empiezo hoy.' }));
+
+    const [request] = api.callsTo(route);
+    expect(JSON.parse(String(request?.init.body))).toEqual({
+      to: 'IN_PROGRESS',
+      comment: 'Empiezo hoy.',
+    });
+    expect(new Headers(request?.init.headers).get('X-Requested-With')).toBe('fetch');
+    expect(queryClient.getQueryData(incidentKeys.detail(INCIDENT.id))).toEqual(inProgress);
+    expect(isStale(queryClient, incidentKeys.list({}, 1))).toBe(true);
+    expect(isStale(queryClient, incidentKeys.events(INCIDENT.id))).toBe(true);
+  });
+
+  it('un error de la API no toca el detalle ni el historial', async () => {
+    mockApi({
+      [route]: () => errorResponse(409, 'CONFLICT', 'No se puede pasar de Abierta a Cerrada.'),
+    });
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(incidentKeys.detail(INCIDENT.id), INCIDENT);
+    queryClient.setQueryData(incidentKeys.events(INCIDENT.id), INCIDENT_EVENTS);
+    const { result } = renderHook(() => useTransitionIncident(INCIDENT.id), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ to: 'CLOSED' }).catch(() => undefined);
+    });
+
+    await waitFor(() =>
+      expect(result.current.error?.message).toBe('No se puede pasar de Abierta a Cerrada.'),
+    );
+    expect(queryClient.getQueryData(incidentKeys.detail(INCIDENT.id))).toEqual(INCIDENT);
+    expect(isStale(queryClient, incidentKeys.events(INCIDENT.id))).toBe(false);
+  });
+});
+
+describe('todas las mutaciones de incidencia invalidan su historial', () => {
+  it.each([
+    [
+      'useUpdateIncident',
+      `PATCH /api/incidents/${INCIDENT.id}`,
+      (id: string) => useUpdateIncident(id),
+      { title: 'Título nuevo' },
+    ],
+    [
+      'useAssignIncident',
+      `POST /api/incidents/${INCIDENT.id}/assign`,
+      (id: string) => useAssignIncident(id),
+      PEOPLE.PABLO.id,
+    ],
+  ] as const)('%s', async (_name, route, useHook, input) => {
+    mockApi({ [route]: () => jsonResponse(200, INCIDENT) });
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(incidentKeys.events(INCIDENT.id), INCIDENT_EVENTS);
+    const { result } = renderHook(() => useHook(INCIDENT.id), { wrapper });
+
+    // Cada hook tiene su tipo de entrada: la tabla los empareja.
+    await act(() => (result.current.mutateAsync as (value: unknown) => Promise<unknown>)(input));
+
+    expect(isStale(queryClient, incidentKeys.events(INCIDENT.id))).toBe(true);
+  });
+
+  it('useCreateIncident invalida el historial de la incidencia creada', async () => {
+    mockApi({ 'POST /api/incidents': () => jsonResponse(201, INCIDENT) });
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(incidentKeys.events(INCIDENT.id), INCIDENT_EVENTS);
+    const { result } = renderHook(() => useCreateIncident(), { wrapper });
+
+    await act(() =>
+      result.current.mutateAsync({
+        title: INCIDENT.title,
+        description: INCIDENT.description,
+        typeId: INCIDENT_TYPES.TRANSPORT.id,
+        priority: 'HIGH',
+      }),
+    );
+
+    expect(isStale(queryClient, incidentKeys.events(INCIDENT.id))).toBe(true);
   });
 });

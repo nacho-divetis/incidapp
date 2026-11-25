@@ -4,7 +4,12 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { DEMO_USER, jsonResponse, mockApi, never } from '../../test/api-mock';
-import { INCIDENT, INCIDENT_TYPES, INCIDENT_TYPE_LIST } from '../../test/incident-fixtures';
+import {
+  INCIDENT,
+  INCIDENT_EVENTS,
+  INCIDENT_TYPES,
+  INCIDENT_TYPE_LIST,
+} from '../../test/incident-fixtures';
 import { renderApp } from '../../test/render-app';
 
 const ME = 'GET /api/auth/me';
@@ -100,6 +105,7 @@ describe('CA-03.13 · alta desde la web', () => {
     api.on(CREATE, () => jsonResponse(201, INCIDENT));
     api.on(`GET /api/incidents/${INCIDENT.id}`, () => jsonResponse(200, INCIDENT));
     api.on(`GET /api/incidents/${INCIDENT.id}/assignees`, () => jsonResponse(200, []));
+    api.on(`GET /api/incidents/${INCIDENT.id}/events`, () => jsonResponse(200, INCIDENT_EVENTS));
     const user = userEvent.setup();
     const { currentPath } = renderApp(CREATE_PATH);
     await createButton();

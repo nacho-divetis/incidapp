@@ -4,7 +4,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { DEMO_USER, errorResponse, jsonResponse, mockApi, never } from '../../test/api-mock';
-import { INCIDENT, PEOPLE } from '../../test/incident-fixtures';
+import { INCIDENT, INCIDENT_EVENTS, PEOPLE } from '../../test/incident-fixtures';
 import { renderApp } from '../../test/render-app';
 
 const ME = 'GET /api/auth/me';
@@ -18,6 +18,7 @@ function setupApi(incident: Incident = INCIDENT) {
     [ME]: () => jsonResponse(200, DEMO_USER),
     [DETAIL]: () => jsonResponse(200, incident),
     [`GET /api/incidents/${INCIDENT.id}/assignees`]: () => jsonResponse(200, [PEOPLE.MARTA]),
+    [`GET /api/incidents/${INCIDENT.id}/events`]: () => jsonResponse(200, INCIDENT_EVENTS),
   });
 }
 
@@ -60,7 +61,11 @@ describe('CA-03.15 · edición desde la web', () => {
   it('al guardar llama a la API y el detalle muestra los datos nuevos y un aviso', async () => {
     const saved: Incident = { ...INCIDENT, title: 'Palé dañado en el muelle 2', dueDate: null };
     const api = setupApi();
-    api.on(UPDATE, () => jsonResponse(200, saved));
+    api.on(UPDATE, () => {
+      // Desde aquí la API devuelve la incidencia guardada (el detalle puede volver a pedirla).
+      api.on(DETAIL, () => jsonResponse(200, saved));
+      return jsonResponse(200, saved);
+    });
     const user = userEvent.setup();
     const { currentPath } = renderApp(EDIT_PATH);
     await saveButton();

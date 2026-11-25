@@ -1,10 +1,12 @@
 // Hooks de TanStack Query de las incidencias (`/api/incidents…`).
 import {
   Incident,
+  IncidentEventList,
   IncidentListResponse,
   UserSummary,
   type CreateIncidentInput,
   type IncidentListQuery,
+  type TransitionInput,
   type UpdateIncidentInput,
 } from '@incidapp/shared';
 import {
@@ -35,6 +37,8 @@ export const incidentKeys = {
   detail: (id: string) => ['incidents', id] as const,
   /** Candidatos a asignar una incidencia (`GET /api/incidents/:id/assignees`). */
   assignees: (id: string) => ['incidents', id, 'assignees'] as const,
+  /** Historial de una incidencia (`GET /api/incidents/:id/events`). */
+  events: (id: string) => ['incidents', id, 'events'] as const,
 };
 
 /**
@@ -72,12 +76,14 @@ function incidentPath(id: string): string {
 const AssigneeList = z.array(UserSummary);
 
 /**
- * Tras una mutación que devuelve la incidencia: guarda la respuesta en su detalle (la página la
- * muestra sin otra petición) e invalida todas las páginas del listado.
+ * Tras una mutación que devuelve la incidencia (alta, edición, asignación o cambio de estado):
+ * guarda la respuesta en su detalle (la página la muestra sin otra petición) e invalida todas las
+ * páginas del listado y el historial de la incidencia, que tiene un evento nuevo.
  */
 function storeIncident(queryClient: QueryClient, incident: Incident): void {
   queryClient.setQueryData(incidentKeys.detail(incident.id), incident);
   void queryClient.invalidateQueries({ queryKey: incidentKeys.lists });
+  void queryClient.invalidateQueries({ queryKey: incidentKeys.events(incident.id) });
 }
 
 /**
@@ -112,6 +118,14 @@ export function useIncidentAssignees(id: string, { enabled }: { enabled: boolean
   });
 }
 
+/** Historial de una incidencia (CA-04.9), del evento más antiguo al más reciente. */
+export function useIncidentEvents(id: string) {
+  return useQuery({
+    queryKey: incidentKeys.events(id),
+    queryFn: () => apiGet(`${incidentPath(id)}/events`, IncidentEventList),
+  });
+}
+
 /** Alta de una incidencia (`POST /api/incidents`). */
 export function useCreateIncident() {
   const queryClient = useQueryClient();
@@ -136,6 +150,19 @@ export function useAssignIncident(id: string) {
   return useMutation({
     mutationFn: (assigneeId: string) =>
       apiSend('POST', `${incidentPath(id)}/assign`, Incident, { assigneeId }),
+    onSuccess: (incident) => storeIncident(queryClient, incident),
+  });
+}
+
+/**
+ * Cambio de estado de una incidencia (`POST /api/incidents/:id/transitions`, CA-04.8). La respuesta
+ * trae el estado nuevo con sus `allowedTransitions`, y el historial se vuelve a pedir.
+ */
+export function useTransitionIncident(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: TransitionInput) =>
+      apiSend('POST', `${incidentPath(id)}/transitions`, Incident, input),
     onSuccess: (incident) => storeIncident(queryClient, incident),
   });
 }

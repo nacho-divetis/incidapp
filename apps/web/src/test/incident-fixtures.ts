@@ -3,6 +3,7 @@
 import type {
   DepartmentSummary,
   Incident,
+  IncidentEvent,
   IncidentListItem,
   IncidentTypeSummary,
   UserSummary,
@@ -123,5 +124,23 @@ export const INCIDENT_LIST_ITEMS: IncidentListItem[] = [
     assignee: null,
     dueDate: null,
     createdAt: '2026-11-20T08:30:00.000Z',
+  },
+];
+
+/** Historial de `INCIDENT` (`GET /api/incidents/:id/events`): alta y asignación a Marta. */
+export const INCIDENT_EVENTS: IncidentEvent[] = [
+  {
+    id: 'be5f6a7b-0001-4e0f-9a1b-3c4d5e6f7a01',
+    type: 'CREATED',
+    actor: PEOPLE.LUIS,
+    createdAt: INCIDENT.createdAt,
+    data: {},
+  },
+  {
+    id: 'be5f6a7b-0002-4e0f-9a1b-3c4d5e6f7a02',
+    type: 'ASSIGNED',
+    actor: PEOPLE.LUIS,
+    createdAt: INCIDENT.updatedAt,
+    data: { from: null, to: PEOPLE.MARTA },
   },
 ];
