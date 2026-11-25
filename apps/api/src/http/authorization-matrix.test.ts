@@ -1,7 +1,7 @@
 // Matriz de autorización de la API (CA-02.15): endpoint × {sin sesión, ADMIN, DIRECTOR, MANAGER, USER}.
 // Fuente de verdad: `docs/permisos.md`. F03 y F04 añaden filas a `ROWS` (o tablas análogas) con
 // incidencias visibles y no visibles. Cada caso usa un usuario destino nuevo para no depender del orden.
-import { DEMO_USERS, type Role } from '@incidapp/shared';
+import { DEMO_USERS, IncidentEventList, type Role } from '@incidapp/shared';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { makeLogin } from '../application/auth/login';
@@ -869,4 +869,266 @@ describe('CA-03.2/CA-03.9: campos que decide el servidor enviados por el cliente
     expect(row!.code).toMatch(/^INC-\d{4}-\d{4}$/);
     expect(row!.code).not.toBe('INC-1999-0001');
   });
+});
+
+// --- Transiciones e historial (CA-04.7, CA-04.4) ---------------------------------------------------
+// Tabla escrita a mano desde `docs/permisos.md` (Transiciones de estado + nota 2), sin derivarla del código.
+
+/** [Responsable, Usuario] por relación (incidencias ABIERTAS): ¿puede hacer la transición operativa / de gestión? */
+const TRANSITION_PERMS: Record<
+  string,
+  { op: readonly [boolean, boolean]; mgmt: readonly [boolean, boolean] }
+> = {
+  'de sus dptos., creada por el Admin': { op: [true, false], mgmt: [true, false] },
+  'de sus dptos., creada por el Usuario y ABIERTA': { op: [true, true], mgmt: [true, false] },
+  'ajena, creada por el Usuario y ABIERTA': { op: [false, true], mgmt: [false, false] },
+  // nota 2: Responsable fuera de sus dptos. que la creó o la tiene asignada: operativa sí, gestión 403
+  'ajena, creada por el Responsable y ABIERTA (nota 2)': {
+    op: [true, false],
+    mgmt: [false, false],
+  },
+  'ajena, asignada al Usuario': { op: [false, true], mgmt: [false, false] },
+  'ajena, asignada al Responsable (nota 2)': { op: [true, false], mgmt: [false, false] },
+  'de sus dptos., asignada al Usuario': { op: [true, true], mgmt: [true, false] },
+  'de sus dptos., creada por el Responsable': { op: [true, false], mgmt: [true, false] },
+  'ajena, sin relación': { op: [false, false], mgmt: [false, false] },
+};
+const OPEN_RELATIONS = RELATIONS.filter((r) => r.status === 'OPEN');
+
+/** [sin sesión, ADMIN, DIRECTOR, MANAGER, USER]: `ok` si puede, `denied` si ve y no puede, 404 si no ve. */
+function transitionCodes(rel: Relation, kind: 'op' | 'mgmt', ok: number, denied = 403): Expected {
+  const perms = TRANSITION_PERMS[rel.name]![kind];
+  const forRole = (i: 0 | 1) => (!rel.view[i] ? 404 : perms[i] ? ok : denied);
+  return [401, ok, denied, forRole(0), forRole(1)];
+}
+
+interface TransitionEndpoint {
+  name: string;
+  method: 'GET' | 'POST';
+  path: (id: string) => string;
+  body?: unknown;
+  expected: (rel: Relation) => Expected;
+}
+
+const TRANSITION_ENDPOINTS: TransitionEndpoint[] = [
+  {
+    name: 'CA-04.7: transición operativa ABIERTA → EN CURSO',
+    method: 'POST',
+    path: (id) => `/api/incidents/${id}/transitions`,
+    body: { to: 'IN_PROGRESS' },
+    expected: (rel) => transitionCodes(rel, 'op', 200),
+  },
+  {
+    name: 'CA-04.7: transición de gestión ABIERTA → RECHAZADA con comentario',
+    method: 'POST',
+    path: (id) => `/api/incidents/${id}/transitions`,
+    body: { to: 'REJECTED', comment: 'Duplicada de otra incidencia' },
+    expected: (rel) => transitionCodes(rel, 'mgmt', 200),
+  },
+  {
+    // Orden 404 → 409 → 403 → 400: sin comentario, quien no puede el tipo recibe 403 antes que 400.
+    name: 'CA-04.3: ABIERTA → RECHAZADA sin comentario (400 solo si puede; 403 antes que 400)',
+    method: 'POST',
+    path: (id) => `/api/incidents/${id}/transitions`,
+    body: { to: 'REJECTED' },
+    expected: (rel) => {
+      const codes = transitionCodes(rel, 'mgmt', 400);
+      return [codes[0], 400, 403, codes[3], codes[4]];
+    },
+  },
+  {
+    // La transición inexistente se evalúa antes que el permiso: 409 a todo el que ve la incidencia.
+    name: 'CA-04.3: ABIERTA → CERRADA no existe (409 a quien la ve, antes que 403)',
+    method: 'POST',
+    path: (id) => `/api/incidents/${id}/transitions`,
+    body: { to: 'CLOSED', comment: 'x' },
+    expected: (rel) => [401, 409, 409, rel.view[0] ? 409 : 404, rel.view[1] ? 409 : 404],
+  },
+  {
+    name: 'CA-04.6: leer el historial',
+    method: 'GET',
+    path: (id) => `/api/incidents/${id}/events`,
+    expected: visibleCodes,
+  },
+];
+
+describe('CA-04.7: matriz de autorización de transiciones e historial por relación', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await startHarness();
+  }, 60_000);
+  afterAll(async () => {
+    await h.close();
+  });
+
+  const cases = TRANSITION_ENDPOINTS.flatMap((endpoint) =>
+    OPEN_RELATIONS.flatMap((rel) =>
+      WHO.map((who, i) => ({ endpoint, rel, who, status: endpoint.expected(rel)[i] as number })),
+    ),
+  );
+
+  it.each(
+    cases.map((c) => [c.endpoint.name, c.endpoint.method, c.rel.name, c.who, c.status, c] as const),
+  )('%s · %s · incidencia %s · %s → %i', async (_n, _m, _r, _w, status, c) => {
+    const id = await createRelated(h, c.rel);
+    const response = await h.api.call(c.endpoint.method, c.endpoint.path(id), {
+      token: c.who === 'none' ? undefined : h.api.tokens[c.who],
+      payload: c.endpoint.body,
+    });
+    expect(response.statusCode).toBe(status);
+  });
+
+  it.each(
+    TRANSITION_ENDPOINTS.flatMap((e) =>
+      [MISSING_ID, 'no-es-uuid'].flatMap((id) => ROLES.map((role) => [e.name, id, role] as const)),
+    ),
+  )('CA-04.3/CA-04.6: %s · id %s · %s → 404', async (name, id, role) => {
+    const endpoint = TRANSITION_ENDPOINTS.find((e) => e.name === name)!;
+    const response = await h.api.call(endpoint.method, endpoint.path(id), {
+      token: h.api.tokens[role],
+      payload: endpoint.body,
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('CA-04.6: una transición correcta deja un evento STATUS_CHANGED en el historial', async () => {
+    const id = await createRelated(h, OPEN_RELATIONS[1]!);
+    const done = await h.api.call('POST', `/api/incidents/${id}/transitions`, {
+      token: h.api.tokens.USER,
+      payload: { to: 'IN_PROGRESS' },
+    });
+    expect(done.statusCode).toBe(200);
+    const events = await h.api.call('GET', `/api/incidents/${id}/events`, {
+      token: h.api.tokens.DIRECTOR,
+    });
+    // Forma real del contrato (IncidentEventList de shared): un array de eventos.
+    const items = IncidentEventList.parse(events.json());
+    // El reloj fijo da la misma fecha a ambos eventos (desempata el id): se compara sin orden.
+    expect(items.map((e) => e.type).sort()).toEqual(['CREATED', 'STATUS_CHANGED']);
+  });
+});
+
+// Estados de partida y transiciones existentes según `permisos.md` (a mano).
+const STATES = [
+  'OPEN',
+  'IN_PROGRESS',
+  'PENDING_THIRD_PARTY',
+  'RESOLVED',
+  'CLOSED',
+  'REJECTED',
+  'REOPENED',
+] as const;
+type State = (typeof STATES)[number];
+
+/** Por estado de partida: destinos operativos y de gestión que existen (tabla de permisos.md). */
+const MACHINE: Record<State, { op: State[]; mgmt: State[] }> = {
+  OPEN: { op: ['IN_PROGRESS'], mgmt: ['REJECTED'] },
+  IN_PROGRESS: { op: ['PENDING_THIRD_PARTY', 'RESOLVED'], mgmt: [] },
+  PENDING_THIRD_PARTY: { op: ['IN_PROGRESS'], mgmt: [] },
+  RESOLVED: { op: [], mgmt: ['IN_PROGRESS', 'CLOSED'] },
+  CLOSED: { op: [], mgmt: ['REOPENED'] },
+  REJECTED: { op: [], mgmt: [] },
+  REOPENED: { op: ['IN_PROGRESS'], mgmt: [] },
+};
+const COMMENT_REQUIRED = new Set([
+  'OPEN>REJECTED',
+  'IN_PROGRESS>RESOLVED',
+  'RESOLVED>IN_PROGRESS',
+  'CLOSED>REOPENED',
+]);
+
+/**
+ * Qué anuncia `allowedTransitions` por rol sobre una incidencia de TRANSPORT (dpto. LOG) creada por el Usuario:
+ * Admin y Responsable de LOG, todas; Usuario (creador), solo las operativas; Dirección, ninguna.
+ */
+const announcedBy = (role: Role, state: State): State[] => {
+  const m = MACHINE[state];
+  if (role === 'ADMIN' || role === 'MANAGER') return [...m.op, ...m.mgmt];
+  if (role === 'USER') return m.op;
+  return [];
+};
+
+describe('CA-04.4: allowedTransitions por rol y coherencia con POST …/transitions', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await startHarness();
+  }, 60_000);
+  afterAll(async () => {
+    await h.close();
+  });
+
+  /** Fuerza el estado directo en la BD: no genera eventos (solo el CREATED del alta). */
+  async function createInState(state: State): Promise<string> {
+    const id = await createRelated(h, OPEN_RELATIONS[1]!);
+    if (state !== 'OPEN') {
+      await h.database.db.update(incidents).set({ status: state }).where(eq(incidents.id, id));
+    }
+    return id;
+  }
+
+  const roleStates = STATES.flatMap((state) => ROLES.map((role) => [state, role] as const));
+
+  it.each(roleStates)(
+    'CA-04.4: desde %s, %s recibe exactamente las transiciones de permisos.md',
+    async (state, role) => {
+      const id = await createInState(state);
+      const detail = await h.api.call('GET', `/api/incidents/${id}`, { token: h.api.tokens[role] });
+      expect(detail.statusCode).toBe(200);
+      const transitions = (
+        detail.json() as { allowedTransitions: { to: State; requiresComment: boolean }[] }
+      ).allowedTransitions;
+      expect(transitions.map((t) => t.to).sort()).toEqual([...announcedBy(role, state)].sort());
+      for (const t of transitions) {
+        expect(t.requiresComment).toBe(COMMENT_REQUIRED.has(`${state}>${t.to}`));
+      }
+    },
+  );
+
+  // Por cada relación abierta que ve la incidencia, el detalle anuncia lo que dice TRANSITION_PERMS.
+  it.each(
+    OPEN_RELATIONS.flatMap((rel) =>
+      ([0, 1] as const)
+        .filter((i) => rel.view[i])
+        .map((i) => [rel.name, i === 0 ? 'MANAGER' : 'USER', rel, i] as const),
+    ),
+  )(
+    'CA-04.4: incidencia %s · %s: allowedTransitions según TRANSITION_PERMS',
+    async (_n, role, rel, i) => {
+      const id = await createRelated(h, rel);
+      const detail = await h.api.call('GET', `/api/incidents/${id}`, { token: h.api.tokens[role] });
+      expect(detail.statusCode).toBe(200);
+      const transitions = (
+        detail.json() as { allowedTransitions: { to: State; requiresComment: boolean }[] }
+      ).allowedTransitions;
+      const perms = TRANSITION_PERMS[rel.name]!;
+      const expected = [
+        ...(perms.op[i] ? [{ to: 'IN_PROGRESS', requiresComment: false }] : []),
+        ...(perms.mgmt[i] ? [{ to: 'REJECTED', requiresComment: true }] : []),
+      ];
+      expect([...transitions].sort((x, y) => x.to.localeCompare(y.to))).toEqual(
+        expected.sort((x, y) => x.to.localeCompare(y.to)),
+      );
+    },
+  );
+
+  it.each(roleStates.flatMap(([state, role]) => STATES.map((to) => [state, role, to] as const)))(
+    'CA-04.4: desde %s, %s hace → %s solo si lo anuncia (200); si existe y no lo anuncia, 403; si no existe, 409',
+    async (state, role, to) => {
+      const token = h.api.tokens[role];
+      const id = await createInState(state);
+      const detail = await h.api.call('GET', `/api/incidents/${id}`, { token });
+      const announced = (detail.json() as { allowedTransitions: { to: State }[] })
+        .allowedTransitions;
+      const exists = [...MACHINE[state].op, ...MACHINE[state].mgmt].includes(to);
+      const response = await h.api.call('POST', `/api/incidents/${id}/transitions`, {
+        token,
+        payload: { to, comment: 'Comentario de prueba' },
+      });
+      const expected = announced.some((t) => t.to === to) ? 200 : exists ? 403 : 409;
+      expect(response.statusCode).toBe(expected);
+      if (expected === 200) {
+        expect((response.json() as { status: string }).status).toBe(to);
+      }
+    },
+  );
 });

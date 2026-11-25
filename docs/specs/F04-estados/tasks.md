@@ -46,14 +46,14 @@
 - Notas: `useIncidentEvents(id)` y `useTransitionIncident(id)`; todas las mutaciones de incidencia invalidan `['incidents', id, 'events']`. Los botones salen solo de `allowedTransitions` (la web no mira el rol ni el estado). El diálogo se cierra solo si la API responde bien. Indicador de carga y `Alert` de error en la línea de tiempo. **Punto de control con el usuario:** revisión de la UI de F03 y F04 en el navegador antes de T-04.06.
 
 ### T-04.05 · Ampliar la matriz de autorización con las transiciones y el historial
-- Estado: pendiente
+- Estado: hecha
 - Agente: qa-tester · Revisores: code-reviewer
 - Depende de: T-04.02, T-03.05
 - Paralelizable con: T-04.04
 - Cubre: CA-04.7, CA-04.4 (`allowedTransitions` por rol y relación de punta a punta)
 - Archivos: apps/api/src/http/authorization-matrix.test.ts, apps/api/src/http/test-support.ts
 - Verificación: npm test -w @incidapp/api -- authorization-matrix && npm run lint
-- Notas: reutiliza las incidencias por relación de T-03.05 y `createAuthzClient`. Filas para `POST …/transitions` (una operativa, `OPEN → IN_PROGRESS`, y una de gestión, `OPEN → REJECTED` con comentario; cada caso sobre una incidencia nueva en el estado de partida para no depender del orden) y `GET …/events`, con sin sesión y los 4 roles × relación; incluye la nota ² (Responsable fuera de sus dptos.: operativa sí, gestión 403). Comprueba además que `allowedTransitions` del detalle coincide con lo que la matriz permite. Revisa la tabla de la máquina de estados de T-04.01 contra `docs/permisos.md` y propone (no corrige) las diferencias. No toca código de producción.
+- Notas: reutiliza las incidencias por relación de T-03.05 y `createAuthzClient`. Filas para `POST …/transitions` (una operativa, `OPEN → IN_PROGRESS`, y una de gestión, `OPEN → REJECTED` con comentario; cada caso sobre una incidencia nueva en el estado de partida para no depender del orden) y `GET …/events`, con sin sesión y los 4 roles × relación; incluye la nota ² (Responsable fuera de sus dptos.: operativa sí, gestión 403). Comprueba además que `allowedTransitions` del detalle coincide con lo que la matriz permite. Revisa la tabla de la máquina de estados de T-04.01 contra `docs/permisos.md` y propone (no corrige) las diferencias. No toca código de producción. **Revisión de la máquina contra `permisos.md`:** sin diferencias (9 transiciones, tipo y comentario obligatorio).
 
 ### T-04.06 · Desplegar F03 y F04 en Render y comprobar incidencias, estados e historial
 - Estado: pendiente
