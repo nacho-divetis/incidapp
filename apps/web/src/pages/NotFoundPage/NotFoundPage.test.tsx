@@ -15,9 +15,10 @@ describe('NotFoundPage', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Página no encontrada' }),
     ).toBeInTheDocument();
+    // La página de inicio es el listado de incidencias (CA-07.5).
     expect(screen.getByRole('link', { name: 'Volver a la página de inicio' })).toHaveAttribute(
       'href',
-      '/',
+      '/incidencias',
     );
   });
 });

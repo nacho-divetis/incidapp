@@ -53,10 +53,10 @@ const table = () => screen.findByRole('table', { name: 'Incidencias' });
 
 describe('CA-03.12 · listado de incidencias', () => {
   it('"Incidencias" está en la navegación y lleva al listado', async () => {
-    const api = setupApi();
-    api.on('GET /api/health', never); // la página de inicio pide la salud de la API
+    setupApi();
     const user = userEvent.setup();
-    const { currentPath } = renderApp('/');
+    // Sale de otra página con la navegación (sin `manageUsers`, la de "No tienes permiso").
+    const { currentPath } = renderApp('/admin/usuarios');
 
     const nav = await screen.findByRole('navigation', { name: 'Navegación principal' });
     await user.click(within(nav).getByRole('link', { name: 'Incidencias' }));
