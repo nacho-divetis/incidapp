@@ -56,7 +56,7 @@
 - Notas: reutiliza las incidencias por relación de T-03.05 y `createAuthzClient`. Filas para `POST …/transitions` (una operativa, `OPEN → IN_PROGRESS`, y una de gestión, `OPEN → REJECTED` con comentario; cada caso sobre una incidencia nueva en el estado de partida para no depender del orden) y `GET …/events`, con sin sesión y los 4 roles × relación; incluye la nota ² (Responsable fuera de sus dptos.: operativa sí, gestión 403). Comprueba además que `allowedTransitions` del detalle coincide con lo que la matriz permite. Revisa la tabla de la máquina de estados de T-04.01 contra `docs/permisos.md` y propone (no corrige) las diferencias. No toca código de producción. **Revisión de la máquina contra `permisos.md`:** sin diferencias (9 transiciones, tipo y comentario obligatorio).
 
 ### T-04.06 · Desplegar F03 y F04 en Render y comprobar incidencias, estados e historial
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: code-reviewer
 - Depende de: T-03.05, T-04.04, T-04.05
 - Paralelizable con: —
