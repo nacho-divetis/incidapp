@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IncidApp · TFM</title>
+<meta name="description" content="Presentación del TFM IncidApp: gestión de incidencias con roles, estados e historial, desarrollada con un harness de agentes de IA. Datos ficticios.">
+<!--
+  Slides del TFM (T-07.07). HTML autocontenido: sin CDN, sin fuentes externas, sin imágenes externas.
+  Navegación: → ↓ AvPág Espacio (siguiente) · ← ↑ RePág (anterior) · Inicio/Fin · F (pantalla completa).
+  La URL lleva el número de diapositiva (index.html#5), que usa la grabación del vídeo (T-07.09).
+  Al imprimir (o con page.pdf de Playwright y preferCSSPageSize) sale una diapositiva por página, 1280×720.
+-->
+<style>
+  :root {
+    --bg: #eef1f5;
+    --paper: #ffffff;
+    --ink: #142033;
+    --ink-2: #3b4a60;
+    --muted: #6b778a;
+    --line: #d5dbe4;
+    --accent: #0f766e;
+    --accent-soft: #e0f2ef;
+    --accent-ink: #0b5953;
+    --warn: #b45309;
+    --warn-soft: #fdf0e1;
+    --danger: #b42318;
+    --danger-soft: #fdecea;
+    --navy: #142033;
+    --navy-2: #1e2d45;
+    --mono: Consolas, "SFMono-Regular", Menlo, "DejaVu Sans Mono", "Courier New", monospace;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---------- Escenario: una diapositiva de 1280×720 escalada a la ventana ---------- */
+  .stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  .deck { position: relative; width: 1280px; height: 720px; transform-origin: center center; }
+  .slide {
+    position: absolute; inset: 0;
+    width: 1280px; height: 720px;
+    background: var(--paper);
+    padding: 64px 80px 72px;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(20, 32, 51, .18);
+    overflow: hidden;
+  }
+  .slide.is-active { display: flex; }
+
+  /* ---------- Tipografía ---------- */
+  .kicker {
+    font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 10px;
+  }
+  h1, h2, h3 { margin: 0; line-height: 1.12; letter-spacing: -.01em; }
+  h2 { font-size: 44px; font-weight: 700; margin-bottom: 28px; }
+  h3 { font-size: 22px; font-weight: 650; margin-bottom: 8px; }
+  p { margin: 0; }
+  .lead { font-size: 24px; line-height: 1.45; color: var(--ink-2); max-width: 980px; }
+  .small { font-size: 16px; color: var(--muted); line-height: 1.5; }
+  code, .mono { font-family: var(--mono); font-size: .92em; }
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { position: relative; padding-left: 22px; margin: 0 0 10px; font-size: 20px; line-height: 1.4; color: var(--ink-2); }
+  ul.clean li::before { content: ""; position: absolute; left: 0; top: .62em; width: 8px; height: 8px; border-radius: 2px; background: var(--accent); }
+  strong { color: var(--ink); font-weight: 650; }
+
+  .footer {
+    position: absolute; left: 80px; right: 80px; bottom: 26px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--muted); letter-spacing: .02em;
+    border-top: 1px solid var(--line); padding-top: 12px;
+  }
+
+  /* ---------- Piezas reutilizables ---------- */
+  .grid { display: grid; gap: 20px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px;
+    background: var(--paper);
+  }
+  .card p { font-size: 17px; line-height: 1.45; color: var(--ink-2); }
+  .card .tag { display: inline-block; margin-bottom: 10px; }
+  .tag {
+    font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink);
+  }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.danger { background: var(--danger-soft); color: var(--danger); }
+  .tag.dark { background: var(--navy); color: #fff; }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: 15px;
+    padding: 3px 10px; border-radius: 6px; background: #f2f4f7; border: 1px solid var(--line); color: var(--ink);
+  }
+  .note {
+    margin-top: auto; font-size: 16px; color: var(--ink-2);
+    background: #f6f8fa; border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 0 8px 8px 0;
+  }
+
+  /* ---------- Portada y cierre (fondo oscuro) ---------- */
+  .slide.dark { background: var(--navy); color: #fff; }
+  .slide.dark .kicker { color: #5eead4; }
+  .slide.dark .lead { color: #c6d0de; }
+  .slide.dark .footer { color: #8b97aa; border-top-color: #2c3d58; }
+  .slide.dark strong { color: #fff; }
+  .cover-title { font-size: 104px; font-weight: 800; letter-spacing: -.03em; margin: 8px 0 22px; }
+  .cover-title span { color: #5eead4; }
+  .cover-meta { margin-top: auto; display: flex; gap: 48px; font-size: 18px; color: #c6d0de; }
+  .cover-meta b { display: block; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #8b97aa; margin-bottom: 6px; font-weight: 700; }
+  .cover-art { position: absolute; right: 64px; top: 70px; opacity: .95; }
+
+  /* ---------- Problema ---------- */
+  .versus { display: grid; grid-template-columns: 1fr 64px 1fr; align-items: stretch; gap: 0; margin-top: 6px; }
+  .versus .arrow { display: grid; place-items: center; font-size: 34px; color: var(--accent); }
+  .versus .card ul.clean li { font-size: 19px; }
+  .card.before { background: #fbfbfc; }
+  .card.before ul.clean li::before { background: var(--danger); }
+  .facts { display: flex; gap: 14px; margin-top: 26px; }
+  .fact { flex: 1; border-radius: 12px; background: var(--accent-soft); padding: 14px 18px; }
+  .fact b { display: block; font-size: 38px; color: var(--accent-ink); line-height: 1; }
+  .fact span { font-size: 15px; color: var(--accent-ink); }
+
+  /* ---------- Roles ---------- */
+  .role { display: flex; flex-direction: column; gap: 10px; }
+  .role .who { font-size: 15px; color: var(--muted); font-family: var(--mono); }
+  .role ul.clean li { font-size: 16px; margin-bottom: 6px; }
+  .role .bar { height: 6px; border-radius: 3px; background: var(--accent); margin-bottom: 4px; }
+  .role.r2 .bar { background: #6366f1; }
+  .role.r3 .bar { background: var(--warn); }
+  .role.r4 .bar { background: #64748b; }
+  .access { display: flex; gap: 16px; align-items: center; margin-top: 22px; font-size: 18px; color: var(--ink-2); }
+
+  /* ---------- Matriz ---------- */
+  table.matrix { border-collapse: collapse; width: 100%; font-size: 17px; }
+  table.matrix th, table.matrix td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: center; }
+  table.matrix th:first-child, table.matrix td:first-child { text-align: left; color: var(--ink); }
+  table.matrix thead th { font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--ink); }
+  .y { color: var(--accent); font-weight: 700; }
+  .n { color: #a3aab5; }
+  .p { color: var(--warn); font-weight: 600; font-size: 15px; }
+  .codes { display: flex; flex-direction: column; gap: 12px; }
+  .code-row { display: flex; gap: 14px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  .code-row b { font-family: var(--mono); font-size: 28px; min-width: 64px; }
+  .code-row p { font-size: 16px; line-height: 1.4; color: var(--ink-2); }
+
+  /* ---------- Arquitectura ---------- */
+  .onion { border-radius: 18px; padding: 14px 16px 16px; }
+  .onion > .lbl { font-weight: 700; font-size: 15px; letter-spacing: .04em; margin-bottom: 8px; display: flex; justify-content: space-between; gap: 12px; }
+  .onion > .lbl span { font-weight: 400; color: var(--ink-2); letter-spacing: 0; }
+  .o1 { background: #e9edf3; }
+  .o2 { background: #dbe3ee; }
+  .o3 { background: #c9f0ea; }
+  .o4 { background: var(--accent); color: #fff; }
+  .o4 > .lbl span { color: #d9f5f1; }
+  .chain { display: flex; align-items: stretch; gap: 8px; margin: 8px 0 22px; }
+  .chain .lv { flex: 1; border-radius: 12px; padding: 14px 10px; text-align: center; border: 1px solid var(--line); background: #f7f9fb; }
+  .chain .lv b { display: block; font-size: 34px; line-height: 1; color: var(--accent-ink); }
+  .chain .lv span { display: block; font-size: 15px; margin-top: 6px; color: var(--ink-2); font-weight: 600; }
+  .chain .lv i { display: block; font-style: normal; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .chain .sep { align-self: center; color: var(--muted); font-size: 20px; }
+
+  /* ---------- Calidad ---------- */
+  .big-num { font-size: 64px; font-weight: 800; color: var(--accent-ink); line-height: 1; letter-spacing: -.02em; }
+  .pipeline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .pipeline .st { font-family: var(--mono); font-size: 14px; padding: 6px 10px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-ink); border: 1px solid #b7e3dc; }
+  .pipeline .ar { color: var(--muted); }
+
+  /* ---------- Proceso con IA ---------- */
+  .flow { display: flex; align-items: stretch; gap: 0; margin: 6px 0 22px; }
+  .flow .step { flex: 1; position: relative; padding: 14px 14px 14px 26px; background: #f3f6f9; border: 1px solid var(--line); font-size: 15px; line-height: 1.35; color: var(--ink-2); }
+  .flow .step:first-child { border-radius: 12px 0 0 12px; padding-left: 16px; }
+  .flow .step:last-child { border-radius: 0 12px 12px 0; }
+  .flow .step b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 4px; }
+  .flow .step.hl { background: var(--accent-soft); border-color: #b7e3dc; }
+  .flow .step.hl b { color: var(--accent-ink); }
+  .finding { display: flex; flex-direction: column; gap: 8px; }
+  .finding .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .finding h3 { font-size: 20px; }
+  .finding p { font-size: 16px; }
+  .finding .fix { font-size: 15px; color: var(--accent-ink); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: auto; }
+
+  /* ---------- Recortes ---------- */
+  .cut { display: flex; flex-direction: column; gap: 8px; }
+  .cut .tag { align-self: flex-start; }
+  .cut h3 { font-size: 21px; }
+  .cut p { font-size: 16px; }
+
+  /* ---------- Cierre ---------- */
+  .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin: 8px 0 34px; }
+  .stat { border-top: 3px solid #5eead4; padding-top: 12px; }
+  .stat b { display: block; font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+  .stat span { display: block; font-size: 15px; color: #c6d0de; margin-top: 8px; line-height: 1.35; }
+  .links { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; font-size: 19px; }
+  .links b { display: block; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #8b97aa; margin-bottom: 4px; }
+  .links span { font-family: var(--mono); color: #e6edf5; font-size: 18px; }
+
+  /* ---------- Controles en pantalla ---------- */
+  .hud {
+    position: fixed; right: 18px; bottom: 14px; display: flex; gap: 8px; align-items: center;
+    font: 13px var(--sans); color: var(--ink-2); z-index: 10;
+  }
+  .hud button {
+    font: inherit; border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+    border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  .hud button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .hud .count { min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; }
+  .progress { position: fixed; left: 0; top: 0; height: 4px; background: var(--accent); transition: width .2s ease; z-index: 10; }
+  .hint { position: fixed; left: 18px; bottom: 16px; font: 12px var(--sans); color: var(--muted); }
+  body.clean .hud, body.clean .hint, body.clean .progress { display: none; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  /* ---------- Impresión / PDF: una diapositiva por página ---------- */
+  @page { size: 1280px 720px; margin: 0; }
+  @media print {
+    html, body { height: auto; overflow: visible; background: #fff; }
+    .stage { position: static; display: block; }
+    .deck { width: 1280px; height: auto; transform: none !important; }
+    .slide {
+      display: flex !important; position: relative; inset: auto;
+      box-shadow: none; break-after: page; page-break-after: always;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .hud, .hint, .progress { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+<main class="stage">
+  <div class="deck" id="deck" aria-roledescription="presentación" aria-label="IncidApp, TFM">
+
+    <!-- 1 · Portada -->
+    <section class="slide dark" aria-roledescription="diapositiva" aria-label="1 de 12: Portada">
+      <svg class="cover-art" width="360" height="300" viewBox="0 0 360 300" aria-hidden="true">
+        <g fill="none" stroke-width="3">
+          <rect x="20" y="20" width="150" height="44" rx="22" stroke="#5eead4"/>
+          <rect x="190" y="20" width="150" height="44" rx="22" stroke="#5eead4" fill="#1e3a4a"/>
+          <rect x="190" y="128" width="150" height="44" rx="22" stroke="#5eead4"/>
+          <rect x="190" y="236" width="150" height="44" rx="22" stroke="#5eead4"/>
+          <rect x="20" y="128" width="150" height="44" rx="22" stroke="#334a6b"/>
+          <path d="M170 42 H186" stroke="#5eead4"/>
+          <path d="M265 64 V124" stroke="#5eead4"/>
+          <path d="M265 172 V232" stroke="#5eead4"/>
+          <path d="M95 64 V124" stroke="#334a6b" stroke-dasharray="6 5"/>
+        </g>
+        <g font-family="Segoe UI, system-ui, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
+          <text x="95" y="47" fill="#5eead4">Abierta</text>
+          <text x="265" y="47" fill="#fff">En curso</text>
+          <text x="265" y="155" fill="#5eead4">Resuelta</text>
+          <text x="265" y="263" fill="#5eead4">Cerrada</text>
+          <text x="95" y="155" fill="#8b97aa">Rechazada</text>
+        </g>
+      </svg>
+      <p class="kicker">Trabajo Fin de Máster · Máster de Desarrollo con IA</p>
+      <h1 class="cover-title">Incid<span>App</span></h1>
+      <p class="lead" style="max-width: 760px;">Gestión de incidencias de una empresa ficticia: <strong>roles y departamentos, estados con historial y permisos decididos en el servidor</strong>. Construida con un equipo de agentes de IA y especificaciones (SDD).</p>
+      <div class="cover-meta">
+        <div><b>Demo</b>incidapp.onrender.com</div>
+        <div><b>Código</b>github.com/nacho-divetis/incidapp</div>
+        <div><b>Fecha</b>Noviembre de 2026</div>
+      </div>
+      <div class="footer"><span>Todos los datos son ficticios · Coste de la infraestructura: 0 €</span><span>1 / 12</span></div>
+    </section>
+
+    <!-- 2 · Problema -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="2 de 12: El problema">
+      <p class="kicker">El problema</p>
+      <h2>Incidencias perdidas en correos y hojas de cálculo</h2>
+      <div class="versus">
+        <div class="card before">
+          <span class="tag danger">Hoy</span>
+          <ul class="clean">
+            <li>Un transporte retrasado se avisa por correo y nadie sabe <strong>quién lo lleva</strong>.</li>
+            <li>No queda rastro de <strong>qué pasó ni cuándo</strong>: se reescribe la hoja.</li>
+            <li>O todo el mundo ve todo, o nadie ve nada.</li>
+            <li>Dirección no sabe cuántas hay abiertas ni dónde.</li>
+          </ul>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="card">
+          <span class="tag">Con IncidApp</span>
+          <ul class="clean">
+            <li>Cada incidencia tiene <strong>departamento propietario</strong>, prioridad y asignado.</li>
+            <li>Un <strong>ciclo de vida</strong> con reglas y un historial que no se puede borrar.</li>
+            <li>Cada rol ve y hace <strong>solo lo que le corresponde</strong>.</li>
+            <li>Una demo pública para probarlo con un usuario de cada rol.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="facts">
+        <div class="fact"><b>9</b><span>departamentos</span></div>
+        <div class="fact"><b>7</b><span>tipos de incidencia</span></div>
+        <div class="fact"><b>7</b><span>estados y 9 transiciones</span></div>
+        <div class="fact"><b>4</b><span>roles</span></div>
+      </div>
+      <div class="footer"><span>IncidApp · TFM Máster de Desarrollo con IA</span><span>2 / 12</span></div>
+    </section>
+
+    <!-- 3 · Demo por roles -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="3 de 12: Demo por roles">
+      <p class="kicker">La demo</p>
+      <h2>Un usuario por rol, con lo que puede ver y hacer</h2>
+      <div class="grid g4">
+        <div class="card role r1">
+          <div class="bar"></div>
+          <h3>Admin</h3>
+          <span class="who">admin@incidapp.test</span>
+          <ul class="clean">
+            <li>Ve y gestiona todas las incidencias.</li>
+            <li>Único con <strong>gestión de usuarios</strong>: alta, rol, departamentos.</li>
+          </ul>
+        </div>
+        <div class="card role r2">
+          <div class="bar"></div>
+          <h3>Dirección</h3>
+          <span class="who">direccion@incidapp.test</span>
+          <ul class="clean">
+            <li>Ve <strong>todas</strong> las incidencias.</li>
+            <li>Solo consulta: ningún botón de acción.</li>
+          </ul>
+        </div>
+        <div class="card role r3">
+          <div class="bar"></div>
+          <h3>Responsable</h3>
+          <span class="who">responsable@incidapp.test</span>
+          <ul class="clean">
+            <li>Gestiona las de <strong>su departamento</strong> (Logística).</li>
+            <li>Asigna, rechaza, cierra y reabre.</li>
+          </ul>
+        </div>
+        <div class="card role r4">
+          <div class="bar"></div>
+          <h3>Usuario</h3>
+          <span class="who">usuario@incidapp.test</span>
+          <ul class="clean">
+            <li>Crea y trabaja <strong>las suyas</strong> y las de su departamento.</li>
+            <li>Empieza y resuelve; no cierra.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="access">
+        <span>Contraseña común:</span><span class="pill">Demo2026!</span>
+        <span style="margin-left: 18px;">URL:</span><span class="pill">https://incidapp.onrender.com</span>
+      </div>
+      <div class="card" style="margin-top: 22px; padding: 14px 20px; font-size: 18px; color: var(--ink-2);"><strong>Recorrido del vídeo:</strong> el Usuario crea, empieza y resuelve · la Responsable cierra · Dirección consulta sin acciones · el Admin gestiona usuarios · el Usuario choca con un 403 y un 404.</div>
+      <p class="note">Plan gratuito de Render: si el servicio estaba dormido, la primera carga tarda alrededor de un minuto. Los datos demo son ficticios y se cargan al arrancar.</p>
+      <div class="footer"><span>IncidApp · TFM Máster de Desarrollo con IA</span><span>3 / 12</span></div>
+    </section>
+
+    <!-- 4 · Ciclo de vida -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="4 de 12: Ciclo de vida de una incidencia">
+      <p class="kicker">Estados e historial</p>
+      <h2>Un ciclo de vida con reglas, no una columna libre</h2>
+      <svg viewBox="0 0 1190 400" width="1120" height="376" role="img" aria-label="Máquina de estados: Abierta pasa a En curso o a Rechazada; En curso pasa a Pendiente de tercero y vuelve, o a Resuelta; Resuelta vuelve a En curso o pasa a Cerrada; Cerrada pasa a Reabierta y Reabierta a En curso.">
+        <defs>
+          <marker id="mo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f766e"/></marker>
+          <marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#142033"/></marker>
+        </defs>
+        <g fill="none" stroke-width="2.5">
+          <!-- operativas (verde, continuas) -->
+          <path d="M240 200 H326" stroke="#0f766e" marker-end="url(#mo)"/>
+          <path d="M410 172 V90" stroke="#0f766e" marker-end="url(#mo)"/>
+          <path d="M450 86 V168" stroke="#0f766e" marker-end="url(#mo)"/>
+          <path d="M530 190 H636" stroke="#0f766e" marker-end="url(#mo)"/>
+          <path d="M640 358 H430 V232" stroke="#0f766e" marker-end="url(#mo)"/>
+          <!-- gestión (oscuras, discontinuas) -->
+          <path d="M140 228 V326" stroke="#142033" stroke-dasharray="7 6" marker-end="url(#mg)"/>
+          <path d="M640 212 H534" stroke="#142033" stroke-dasharray="7 6" marker-end="url(#mg)"/>
+          <path d="M840 200 H946" stroke="#142033" stroke-dasharray="7 6" marker-end="url(#mg)"/>
+          <path d="M1050 228 V358 H844" stroke="#142033" stroke-dasharray="7 6" marker-end="url(#mg)"/>
+        </g>
+        <g stroke-width="2">
+          <rect x="40" y="172" width="200" height="56" rx="28" fill="#e0f2ef" stroke="#0f766e"/>
+          <rect x="330" y="172" width="200" height="56" rx="28" fill="#e0f2ef" stroke="#0f766e"/>
+          <rect x="300" y="30" width="260" height="56" rx="28" fill="#fdf0e1" stroke="#b45309"/>
+          <rect x="640" y="172" width="200" height="56" rx="28" fill="#e0f2ef" stroke="#0f766e"/>
+          <rect x="950" y="172" width="200" height="56" rx="28" fill="#142033" stroke="#142033"/>
+          <rect x="40" y="330" width="200" height="56" rx="28" fill="#fdecea" stroke="#b42318"/>
+          <rect x="45" y="335" width="190" height="46" rx="23" fill="none" stroke="#b42318"/>
+          <rect x="640" y="330" width="200" height="56" rx="28" fill="#eef0ff" stroke="#6366f1"/>
+        </g>
+        <g font-family="Segoe UI, system-ui, sans-serif" font-size="19" font-weight="650" text-anchor="middle">
+          <text x="140" y="206" fill="#0b5953">Abierta</text>
+          <text x="430" y="206" fill="#0b5953">En curso</text>
+          <text x="430" y="64" fill="#b45309">Pendiente de tercero</text>
+          <text x="740" y="206" fill="#0b5953">Resuelta</text>
+          <text x="1050" y="206" fill="#ffffff">Cerrada</text>
+          <text x="140" y="364" fill="#b42318">Rechazada</text>
+          <text x="740" y="364" fill="#4338ca">Reabierta</text>
+        </g>
+        <g font-family="Segoe UI, system-ui, sans-serif" font-size="15" fill="#3b4a60">
+          <text x="283" y="188" text-anchor="middle">Empezar</text>
+          <text x="400" y="134" text-anchor="end">En espera</text>
+          <text x="460" y="134">Reanudar</text>
+          <text x="585" y="180" text-anchor="middle">Resolver *</text>
+          <text x="587" y="236" text-anchor="middle">Devolver *</text>
+          <text x="893" y="188" text-anchor="middle">Cerrar</text>
+          <text x="152" y="284">Rechazar *</text>
+          <text x="1062" y="296">Reabrir *</text>
+          <text x="535" y="348" text-anchor="middle">Empezar</text>
+        </g>
+        <g font-family="Segoe UI, system-ui, sans-serif" font-size="15" fill="#3b4a60">
+          <path d="M800 42 H840" stroke="#0f766e" stroke-width="2.5"/>
+          <text x="850" y="47">operativa (Usuario creador o asignado)</text>
+          <path d="M800 70 H840" stroke="#142033" stroke-width="2.5" stroke-dasharray="7 6"/>
+          <text x="850" y="75">gestión (Admin o Responsable)</text>
+          <text x="800" y="103">* comentario obligatorio · Rechazada es final</text>
+        </g>
+      </svg>
+      <p class="note">Cada cambio queda en un <strong>historial solo de inserción</strong> (quién, cuándo, de qué estado a cuál y por qué). La máquina de estados vive en el dominio, sin dependencias externas.</p>
+      <div class="footer"><span>IncidApp · TFM Máster de Desarrollo con IA</span><span>4 / 12</span></div>
+    </section>
+
+    <!-- 5 · Permisos -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="5 de 12: Permisos">
+      <p class="kicker">Permisos</p>
+      <h2>La autorización se decide en un solo sitio: el servidor</h2>
+      <div class="grid" style="grid-template-columns: 1.45fr 1fr; gap: 36px;">
+        <table class="matrix">
+          <thead><tr><th>Acción</th><th>Admin</th><th>Dirección</th><th>Responsable</th><th>Usuario</th></tr></thead>
+          <tbody>
+            <tr><td>Ver incidencias</td><td class="y">Todas</td><td class="y">Todas</td><td class="p">Visibles</td><td class="p">Visibles</td></tr>
+            <tr><td>Crear</td><td class="y">✓</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+            <tr><td>Editar</td><td class="y">✓</td><td class="n">—</td><td class="p">Su dpto.</td><td class="p">Suyas y abiertas</td></tr>
+            <tr><td>Asignar</td><td class="y">✓</td><td class="n">—</td><td class="p">Su dpto.</td><td class="n">—</td></tr>
+            <tr><td>Empezar, en espera, resolver</td><td class="y">✓</td><td class="n">—</td><td class="p">Su dpto.</td><td class="p">Creador o asignado</td></tr>
+            <tr><td>Rechazar, cerrar, reabrir</td><td class="y">✓</td><td class="n">—</td><td class="p">Su dpto.</td><td class="n">—</td></tr>
+            <tr><td>Gestionar usuarios</td><td class="y">✓</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>
+          </tbody>
+        </table>
+        <div class="codes">
+          <div class="code-row"><b>404</b><p>Si la incidencia <strong>no es visible</strong> para quien la pide: no se revela que existe.</p></div>
+          <div class="code-row"><b>403</b><p>Si es visible pero la acción <strong>no está permitida</strong>.</p></div>
+          <div class="code-row" style="background: var(--accent-soft); border-color: #b7e3dc;"><b style="font-size: 18px; min-width: auto;">allowedActions</b><p>Cada respuesta dice qué puede hacer el usuario. La interfaz <strong>no recalcula permisos</strong>: solo muestra u oculta botones.</p></div>
+        </div>
+      </div>
+      <p class="note"><span class="mono">AuthorizationPolicy</span> aplica la matriz de <span class="mono">docs/permisos.md</span>; todos los casos de uso la llaman y los tests recorren rol × acción × visibilidad.</p>
+      <div class="footer"><span>Visible = de su departamento, creada por él o asignada a él</span><span>5 / 12</span></div>
+    </section>
+
+    <!-- 6 · Arquitectura backend -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="6 de 12: Arquitectura del backend">
+      <p class="kicker">Arquitectura · API</p>
+      <h2>Monolito modular con Clean Architecture</h2>
+      <div class="grid" style="grid-template-columns: 1.25fr 1fr; gap: 36px; align-items: start;">
+        <div class="onion o1">
+          <div class="lbl">composition <span>inyección de dependencias, elige el driver de BD</span></div>
+          <div class="onion o2">
+            <div class="lbl">http · infrastructure <span>Fastify, Drizzle, argon2, reloj</span></div>
+            <div class="onion o3">
+              <div class="lbl">application <span>casos de uso, puertos, AuthorizationPolicy</span></div>
+              <div class="onion o4">
+                <div class="lbl">domain <span>entidades, máquina de estados · sin dependencias</span></div>
+              </div>
+            </div>
+          </div>
+          <p class="small" style="margin-top: 12px; text-align: center;"><span class="mono">domain ← application ← infrastructure / http ← composition</span></p>
+        </div>
+        <ul class="clean">
+          <li>Las dependencias apuntan <strong>hacia dentro</strong>; ESLint lo comprueba en cada commit.</li>
+          <li>Errores tipados en la aplicación; solo <span class="mono">http/</span> los traduce a códigos HTTP.</li>
+          <li><strong>Contrato compartido</strong> con Zod en <span class="mono">packages/shared</span>: el front no redefine tipos.</li>
+          <li><strong>PGlite</strong> en local y en tests, sin Docker; <strong>Neon</strong> (Postgres) en producción.</li>
+          <li>Render sirve API y front compilado; migraciones y datos demo al arrancar.</li>
+        </ul>
+      </div>
+      <p class="note">Las decisiones están en <strong>9 ADR</strong> (<span class="mono">docs/adr/</span>): monolito modular, Clean Architecture, sesión en BD, PGlite y Neon, despliegue a coste cero, contrato Zod, adjuntos en <span class="mono">bytea</span>, atomic design y permisos en servidor.</p>
+      <div class="footer"><span>Node 24 · TypeScript · Fastify · Drizzle · PostgreSQL</span><span>6 / 12</span></div>
+    </section>
+
+    <!-- 7 · Atomic design -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="7 de 12: Frontend con atomic design">
+      <p class="kicker">Arquitectura · Web</p>
+      <h2>Interfaz con atomic design y Storybook</h2>
+      <div class="chain">
+        <div class="lv"><b>—</b><span>tokens</span><i>colores y tipos</i></div>
+        <div class="sep" aria-hidden="true">›</div>
+        <div class="lv"><b>13</b><span>átomos</span><i>Button, Input…</i></div>
+        <div class="sep" aria-hidden="true">›</div>
+        <div class="lv"><b>9</b><span>moléculas</span><i>StatusBadge…</i></div>
+        <div class="sep" aria-hidden="true">›</div>
+        <div class="lv"><b>17</b><span>organismos</span><i>IncidentTimeline…</i></div>
+        <div class="sep" aria-hidden="true">›</div>
+        <div class="lv"><b>2</b><span>plantillas</span><i>AppLayout…</i></div>
+        <div class="sep" aria-hidden="true">›</div>
+        <div class="lv" style="background: var(--accent-soft); border-color: #b7e3dc;"><b>11</b><span>páginas</span><i>datos y router</i></div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><h3>Presentacionales</h3><p>Átomos, moléculas y organismos reciben props y emiten callbacks. Sin <span class="mono">fetch</span>, sin router y sin sesión: solo las páginas usan datos.</p></div>
+        <div class="card"><h3>Reglas que se comprueban</h3><p>Un nivel solo importa de los inferiores. ESLint y un test de arquitectura fallan si alguien se lo salta.</p></div>
+        <div class="card"><h3>Una story por pieza</h3><p>Cada componente tiene su story y su test. Storybook se ejecuta en local con <span class="mono">npm run storybook</span>.</p></div>
+      </div>
+      <p class="note">Solo las páginas usan TanStack Query, el router y la sesión. Los componentes reciben las <span class="mono">allowedActions</span> ya calculadas por la API y deciden únicamente qué mostrar.</p>
+      <div class="footer"><span>React · Vite · React Router · TanStack Query · Tailwind · Radix</span><span>7 / 12</span></div>
+    </section>
+
+    <!-- 8 · Calidad y seguridad -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="8 de 12: Calidad y seguridad">
+      <p class="kicker">Calidad y seguridad</p>
+      <h2>Lo que protege la demo en cada cambio</h2>
+      <div class="grid g3" style="gap: 22px;">
+        <div class="card">
+          <span class="tag">Tests</span>
+          <div class="big-num">≈ 3.000</div>
+          <p style="margin-top: 10px;">Vitest en los tres paquetes: dominio, casos de uso, API con <span class="mono">fastify.inject</span> y componentes con Testing Library. La matriz de permisos es una tabla de tests.</p>
+        </div>
+        <div class="card">
+          <span class="tag">CI en cada PR</span>
+          <div class="pipeline">
+            <span class="st">lint</span><span class="ar">›</span>
+            <span class="st">typecheck</span><span class="ar">›</span>
+            <span class="st">test</span><span class="ar">›</span>
+            <span class="st">build</span><span class="ar">›</span>
+            <span class="st">e2e</span>
+          </div>
+          <p style="margin-top: 14px;"><strong>4 flujos E2E</strong> con Playwright: login por rol, flujo completo, acceso denegado y Dirección sin acciones. Con PGlite temporal, nunca contra producción.</p>
+          <p style="margin-top: 10px;">Husky, lint-staged y commitlint antes de cada commit.</p>
+        </div>
+        <div class="card">
+          <span class="tag dark">Seguridad</span>
+          <ul class="clean" style="margin-top: 4px;">
+            <li style="font-size: 16px;">Contraseñas con <strong>argon2id</strong>.</li>
+            <li style="font-size: 16px;">Sesión en BD, cookie <span class="mono">httpOnly</span>, <span class="mono">secure</span>, <span class="mono">Lax</span>, rotada al entrar.</li>
+            <li style="font-size: 16px;">Límite de intentos de login.</li>
+            <li style="font-size: 16px;">Toda entrada validada con Zod; el cliente no decide rol, estado ni autor.</li>
+            <li style="font-size: 16px;">Historial y auditoría solo de inserción.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note"><strong>Definition of Done</strong> de cada tarea: un test por criterio de aceptación, <span class="mono">typecheck</span>, <span class="mono">lint</span> y <span class="mono">test</span> en verde, una story por componente nuevo y revisión sin hallazgos graves pendientes.</p>
+      <div class="footer"><span>GitHub Actions gratis en repositorio público · Solo datos ficticios</span><span>8 / 12</span></div>
+    </section>
+
+    <!-- 9 · Proceso con IA: harness -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="9 de 12: Proceso con IA">
+      <p class="kicker">Proceso con IA</p>
+      <h2>El agente principal dirige, los subagentes construyen</h2>
+      <div class="flow">
+        <div class="step"><b>spec.md</b>criterios CA-xx.y, aprobados por mí</div>
+        <div class="step"><b>plan.md</b>contrato, capas y riesgos</div>
+        <div class="step"><b>tasks.md</b>tareas T-xx.yy con dependencias</div>
+        <div class="step hl"><b>Implementador</b>backend-dev o frontend-dev, con TDD</div>
+        <div class="step hl"><b>Revisores</b>code y security, contexto limpio</div>
+        <div class="step"><b>Commit y PR</b>CI en verde, squash merge</div>
+      </div>
+      <div class="grid g4" style="gap: 16px;">
+        <div class="card"><h3>AGENTS.md</h3><p>Fuente de verdad para cualquier agente: stack, capas, seguridad y Definition of Done.</p></div>
+        <div class="card"><h3>5 subagentes</h3><p>backend-dev, frontend-dev, qa-tester, code-reviewer y security-reviewer.</p></div>
+        <div class="card"><h3>6 skills</h3><p>Recetas: SDD, ejecutar una tarea, caso de uso, componente, ADR y entrega.</p></div>
+        <div class="card"><h3>Hooks y permisos</h3><p>Formateo, archivos protegidos, <span class="mono">typecheck</span> al terminar; <span class="mono">push</span> e instalar piden permiso.</p></div>
+      </div>
+      <p class="note"><strong>Revisores con contexto limpio:</strong> reciben solo el ID de la tarea y el diff, nunca el razonamiento de quien la implementó. <strong>Front y back en paralelo</strong> en worktrees de git cuando el contrato ya existe.</p>
+      <div class="footer"><span>Spec-Driven Development: no se implementa nada que no esté en una tarea</span><span>9 / 12</span></div>
+    </section>
+
+    <!-- 10 · Hallazgos reales -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="10 de 12: Hallazgos de los revisores">
+      <p class="kicker">Proceso con IA · Evidencias</p>
+      <h2>Los revisores encontraron lo que los tests no veían</h2>
+      <div class="grid g3" style="gap: 20px;">
+        <div class="card finding">
+          <div class="meta"><span class="tag dark">security-reviewer</span><span class="tag warn">media</span></div>
+          <h3>Un email de 1 MB podía llenar la base</h3>
+          <p>El login no limitaba la longitud del email y cada intento fallido se guardaba en la auditoría, que no se borra. Unos cientos bastaban para agotar el plan gratuito de Neon.</p>
+          <p class="fix">Máximo de 254 caracteres y recorte antes de auditar, con tests.</p>
+        </div>
+        <div class="card finding">
+          <div class="meta"><span class="tag dark">code + security</span><span class="tag warn">media</span></div>
+          <h3>Carrera al editar y asignar</h3>
+          <p>Se leía y autorizaba fuera de la transacción: con dos peticiones a la vez, el historial podía quedar desfasado y un Usuario editar una incidencia que ya no estaba abierta. <strong>Los 1.009 tests pasaban.</strong></p>
+          <p class="fix"><span class="mono">SELECT … FOR UPDATE</span> dentro de la unidad de trabajo.</p>
+        </div>
+        <div class="card finding">
+          <div class="meta"><span class="tag dark">code-reviewer</span><span class="tag warn">media</span></div>
+          <h3>Mensajes en inglés por un efecto lateral</h3>
+          <p>Los errores de validación salían en español solo porque una ruta importaba algo de <span class="mono">shared</span>. Al corregirlo apareció un fallo de <em>tree-shaking</em> con todos los tests en verde.</p>
+          <p class="fix">Import explícito, <span class="mono">sideEffects</span> correcto y comprobación del bundle.</p>
+        </div>
+      </div>
+      <p class="note">Todos están documentados en <span class="mono">docs/proceso-ia/hallazgos-revisores.md</span>, con el problema y la corrección.</p>
+      <div class="footer"><span>IncidApp · TFM Máster de Desarrollo con IA</span><span>10 / 12</span></div>
+    </section>
+
+    <!-- 11 · Recortes y trabajo futuro -->
+    <section class="slide" aria-roledescription="diapositiva" aria-label="11 de 12: Recortes y trabajo futuro">
+      <p class="kicker">Alcance</p>
+      <h2>Recortes conscientes y trabajo futuro</h2>
+      <p class="lead" style="font-size: 20px; margin: -8px 0 24px;">Para llegar a la entrega con una demo sólida, datos creíbles y E2E en la CI, se priorizó y se dejó fuera, documentado:</p>
+      <div class="grid g4" style="gap: 16px;">
+        <div class="card cut"><span class="tag warn">F05</span><h3>Adjuntos</h3><p>Fotos y PDF en la base (<span class="mono">bytea</span>), tipo por <em>magic bytes</em>, máximo 5 MB. Diseño hecho en su ADR.</p></div>
+        <div class="card cut"><span class="tag warn">F06</span><h3>Cuadro de mando y auditoría</h3><p>Indicadores para Dirección y consulta de la auditoría para Admin. La auditoría ya se registra.</p></div>
+        <div class="card cut"><span class="tag">Calidad</span><h3>Storybook público</h3><p>Hoy en local con <span class="mono">npm run storybook</span>. Siguiente paso: publicarlo en GitHub Pages.</p></div>
+        <div class="card cut"><span class="tag">Entrega</span><h3>Docker y CI ampliada</h3><p>Dockerfile construido en la CI, gitleaks, <span class="mono">npm audit</span> y Dependabot.</p></div>
+      </div>
+      <p class="note">Cada recorte se decidió con el usuario y quedó en la spec: el agente <strong>no amplía ni recorta el alcance en silencio</strong>.</p>
+      <div class="footer"><span>IncidApp · TFM Máster de Desarrollo con IA</span><span>11 / 12</span></div>
+    </section>
+
+    <!-- 12 · Cierre -->
+    <section class="slide dark" aria-roledescription="diapositiva" aria-label="12 de 12: Cierre">
+      <p class="kicker">Cierre</p>
+      <h2 style="font-size: 48px; margin-bottom: 40px; max-width: 1060px;">Una aplicación real, hecha con un equipo de agentes y con las reglas por escrito.</h2>
+      <div class="stats">
+        <div class="stat"><b>5</b><span>features en producción (F00–F04)</span></div>
+        <div class="stat"><b>33</b><span>tareas SDD hechas y revisadas</span></div>
+        <div class="stat"><b>≈ 3.000</b><span>tests automáticos</span></div>
+        <div class="stat"><b>4</b><span>flujos E2E en la CI</span></div>
+        <div class="stat"><b>9</b><span>decisiones en ADR</span></div>
+        <div class="stat"><b>0 €</b><span>Render, Neon y GitHub gratuitos</span></div>
+      </div>
+      <div class="links">
+        <div><b>Demo</b><span>https://incidapp.onrender.com</span></div>
+        <div><b>Repositorio</b><span>https://github.com/nacho-divetis/incidapp</span></div>
+        <div><b>Usuarios demo</b><span>admin@ · direccion@ · responsable@ · usuario@incidapp.test</span></div>
+        <div><b>Contraseña</b><span>Demo2026!</span></div>
+      </div>
+      <div class="footer"><span>Gracias · Todos los datos son ficticios</span><span>12 / 12</span></div>
+    </section>
+
+  </div>
+</main>
+
+<div class="hud" aria-label="Controles de la presentación">
+  <button type="button" id="prev" aria-label="Diapositiva anterior">‹</button>
+  <span class="count" id="count" aria-live="polite">1 / 12</span>
+  <button type="button" id="next" aria-label="Diapositiva siguiente">›</button>
+</div>
+<p class="hint" aria-hidden="true">← → para navegar · F pantalla completa · H ocultar controles</p>
+
+<script>
+  (function () {
+    var deck = document.getElementById('deck');
+    var slides = Array.prototype.slice.call(deck.querySelectorAll('.slide'));
+    var count = document.getElementById('count');
+    var progress = document.getElementById('progress');
+    var total = slides.length;
+    var current = 0;
+
+    function fromHash() {
+      var n = parseInt((location.hash || '').replace('#', ''), 10);
+      return isNaN(n) ? 0 : Math.min(Math.max(n - 1, 0), total - 1);
+    }
+
+    function show(index, updateHash) {
+      current = Math.min(Math.max(index, 0), total - 1);
+      slides.forEach(function (slide, i) {
+        slide.classList.toggle('is-active', i === current);
+        slide.setAttribute('aria-hidden', i === current ? 'false' : 'true');
+      });
+      count.textContent = (current + 1) + ' / ' + total;
+      progress.style.width = ((current + 1) / total * 100) + '%';
+      if (updateHash) history.replaceState(null, '', '#' + (current + 1));
+    }
+
+    function fit() {
+      var scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+      deck.style.transform = 'scale(' + scale + ')';
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      switch (e.key) {
+        case 'ArrowRight': case 'ArrowDown': case 'PageDown': case ' ': case 'Enter':
+          if (e.target.tagName === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+          e.preventDefault(); show(current + 1, true); break;
+        case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace':
+          e.preventDefault(); show(current - 1, true); break;
+        case 'Home': e.preventDefault(); show(0, true); break;
+        case 'End': e.preventDefault(); show(total - 1, true); break;
+        case 'f': case 'F':
+          if (!document.fullscreenElement) { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+          else { document.exitFullscreen && document.exitFullscreen(); }
+          break;
+        case 'h': case 'H': document.body.classList.toggle('clean'); break;
+      }
+    });
+    document.getElementById('prev').addEventListener('click', function () { show(current - 1, true); });
+    document.getElementById('next').addEventListener('click', function () { show(current + 1, true); });
+    window.addEventListener('hashchange', function () { show(fromHash(), false); });
+    window.addEventListener('resize', fit);
+
+    // ?limpio en la URL oculta los controles (lo usa la grabación del vídeo).
+    if (/[?&]limpio\b/.test(location.search)) document.body.classList.add('clean');
+    fit();
+    show(fromHash(), false);
+  })();
+</script>
+</body>
+</html>
