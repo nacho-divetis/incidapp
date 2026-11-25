@@ -6,7 +6,7 @@
 > **Plazo:** congelación el viernes 27/11/2026 a las 20:00. T-04.01 se hace justo después de T-03.01 (antes que T-03.02) para que los componentes de F04 empiecen pronto. **T-04.06 despliega F03 y F04 juntas.**
 
 ### T-04.01 · Ampliar el contrato con transiciones e historial e implementar la máquina de estados
-- Estado: pendiente
+- Estado: hecha
 - Agente: backend-dev · Revisores: code-reviewer
 - Depende de: T-03.01
 - Paralelizable con: T-03.03

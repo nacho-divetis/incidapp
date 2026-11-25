@@ -222,3 +222,80 @@ export const Incident = IncidentBase.extend({
   allowedTransitions: z.array(AllowedTransition),
 });
 export type Incident = z.infer<typeof Incident>;
+
+/** Longitud máxima del comentario de un cambio de estado, ya sin los espacios de los extremos. */
+export const TRANSITION_COMMENT_MAX_LENGTH = 2000;
+
+/**
+ * Cuerpo de `POST /api/incidents/:id/transitions` (CA-04.2, CA-04.3). El comentario vacío o solo
+ * con espacios equivale a no comentar. Si la transición exige comentario lo decide el dominio, no
+ * este esquema. El estado de origen, el autor y las fechas los decide el servidor y se descartan.
+ */
+export const TransitionInput = z.object({
+  to: z.enum(Status.options, {
+    error: (issue) =>
+      issue.input === undefined
+        ? 'El estado de destino es obligatorio.'
+        : 'El estado de destino no es válido.',
+  }),
+  comment: z
+    .string({ error: 'El comentario no es válido.' })
+    .trim()
+    .max(
+      TRANSITION_COMMENT_MAX_LENGTH,
+      `El comentario no puede tener más de ${TRANSITION_COMMENT_MAX_LENGTH} caracteres.`,
+    )
+    .transform((value) => (value === '' ? undefined : value))
+    .optional(),
+});
+/** Cambio de estado ya validado y normalizado (salida del esquema). */
+export type TransitionInput = z.infer<typeof TransitionInput>;
+
+/** Campos de una incidencia cuya edición queda registrada en un evento `UPDATED`. */
+export const IncidentChangedField = z.enum(['title', 'description', 'priority', 'dueDate']);
+export type IncidentChangedField = z.infer<typeof IncidentChangedField>;
+
+/** Un campo editado, con su valor anterior y el nuevo (`dueDate` puede pasar de o a `null`). */
+export const IncidentFieldChange = z.discriminatedUnion('field', [
+  z.object({ field: z.literal('title'), before: z.string(), after: z.string() }),
+  z.object({ field: z.literal('description'), before: z.string(), after: z.string() }),
+  z.object({ field: z.literal('priority'), before: Priority, after: Priority }),
+  z.object({
+    field: z.literal('dueDate'),
+    before: z.iso.date().nullable(),
+    after: z.iso.date().nullable(),
+  }),
+]);
+export type IncidentFieldChange = z.infer<typeof IncidentFieldChange>;
+
+/** Campos comunes de un evento del historial: el actor y la fecha los pone el servidor. */
+const IncidentEventBase = z.object({
+  id: z.uuid(),
+  actor: UserSummary,
+  createdAt: z.iso.datetime(),
+});
+
+/**
+ * Evento del historial de una incidencia (CA-04.6), discriminado por `type`. `incident_events` es
+ * solo de inserción: un evento nunca cambia una vez escrito.
+ */
+export const IncidentEvent = z.discriminatedUnion('type', [
+  IncidentEventBase.extend({ type: z.literal('CREATED'), data: z.object({}) }),
+  IncidentEventBase.extend({
+    type: z.literal('UPDATED'),
+    data: z.object({ changes: z.array(IncidentFieldChange).min(1) }),
+  }),
+  IncidentEventBase.extend({
+    type: z.literal('ASSIGNED'),
+    data: z.object({ from: UserSummary.nullable(), to: UserSummary }),
+  }),
+  IncidentEventBase.extend({
+    type: z.literal('STATUS_CHANGED'),
+    data: z.object({ from: Status, to: Status, comment: z.string().nullable() }),
+  }),
+]);
+export type IncidentEvent = z.infer<typeof IncidentEvent>;
+
+/** Respuesta de `GET /api/incidents/:id/events`: en orden cronológico, el más antiguo primero. */
+export const IncidentEventList = z.array(IncidentEvent);
+export type IncidentEventList = z.infer<typeof IncidentEventList>;

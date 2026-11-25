@@ -11,6 +11,9 @@ import {
   Incident,
   IncidentAllowedAction,
   IncidentDescription,
+  IncidentChangedField,
+  IncidentEvent,
+  IncidentEventList,
   IncidentEventType,
   IncidentListItem,
   IncidentListQuery,
@@ -18,6 +21,8 @@ import {
   IncidentTitle,
   IncidentTypeSummary,
   Priority,
+  TRANSITION_COMMENT_MAX_LENGTH,
+  TransitionInput,
   UpdateIncidentInput,
   UserSummary,
 } from './index';
@@ -503,5 +508,158 @@ describe('Incident', () => {
     ['sin `resolvedAt`', { resolvedAt: undefined }],
   ])('CA-03.6: rechaza un detalle con %s', (_case, changes) => {
     expect(Incident.safeParse({ ...incident, ...changes }).success).toBe(false);
+  });
+});
+
+describe('TransitionInput', () => {
+  it('CA-04.3: acepta el estado destino sin comentario', () => {
+    expect(TransitionInput.parse({ to: 'IN_PROGRESS' })).toEqual({ to: 'IN_PROGRESS' });
+  });
+
+  it('CA-04.3: recorta el comentario y conserva los saltos de línea interiores', () => {
+    expect(TransitionInput.parse({ to: 'RESOLVED', comment: '  Repuesto.\nProbado.  ' })).toEqual({
+      to: 'RESOLVED',
+      comment: 'Repuesto.\nProbado.',
+    });
+  });
+
+  it.each([
+    ['vacío', ''],
+    ['solo con espacios', ' \n\t '],
+  ])('CA-04.3: un comentario %s equivale a no comentar', (_case, comment) => {
+    expect(TransitionInput.parse({ to: 'REJECTED', comment })).toEqual({ to: 'REJECTED' });
+  });
+
+  it('CA-04.3: acepta 2000 caracteres de comentario (ya recortado) y rechaza 2001', () => {
+    expect(TRANSITION_COMMENT_MAX_LENGTH).toBe(2000);
+    expect(
+      TransitionInput.safeParse({ to: 'CLOSED', comment: `  ${'x'.repeat(2000)}  ` }).success,
+    ).toBe(true);
+    expect(fieldErrors(TransitionInput, { to: 'CLOSED', comment: 'x'.repeat(2001) })).toEqual({
+      comment: ['El comentario no puede tener más de 2000 caracteres.'],
+    });
+  });
+
+  it('CA-04.3: descarta los campos que decide el servidor (`from`, autor, fechas…)', () => {
+    expect(
+      TransitionInput.parse({
+        to: 'IN_PROGRESS',
+        from: 'REJECTED',
+        actorId: USER_ID,
+        ...serverFields,
+      }),
+    ).toEqual({ to: 'IN_PROGRESS' });
+  });
+
+  it.each([
+    ['sin estado destino', {}, { to: ['El estado de destino es obligatorio.'] }],
+    ['con un estado desconocido', { to: 'DONE' }, { to: ['El estado de destino no es válido.'] }],
+    ['con el estado en minúsculas', { to: 'open' }, { to: ['El estado de destino no es válido.'] }],
+    [
+      'con un comentario que no es texto',
+      { to: 'OPEN', comment: 42 },
+      { comment: ['El comentario no es válido.'] },
+    ],
+    [
+      'con el comentario a null',
+      { to: 'OPEN', comment: null },
+      { comment: ['El comentario no es válido.'] },
+    ],
+  ])('CA-04.3: rechaza un cambio de estado %s', (_case, body, expected) => {
+    expect(fieldErrors(TransitionInput, body)).toEqual(expected);
+  });
+});
+
+describe('IncidentEvent', () => {
+  const EVENT_ID = '3e4f5a6b-7c8d-4e9f-8a1b-2c3d4e5f6a7b';
+  const actor = { id: USER_ID, name: 'Lucía Gómez' };
+  const base = { id: EVENT_ID, actor, createdAt: '2026-11-25T10:00:00.000Z' };
+
+  const created = { ...base, type: 'CREATED', data: {} };
+  const updated = {
+    ...base,
+    type: 'UPDATED',
+    data: {
+      changes: [
+        { field: 'title', before: 'Palé dañado', after: 'Palé dañado en la entrega' },
+        { field: 'description', before: 'Film roto.', after: 'Film roto y cajas aplastadas.' },
+        { field: 'priority', before: 'MEDIUM', after: 'HIGH' },
+        { field: 'dueDate', before: null, after: '2026-12-15' },
+      ],
+    },
+  };
+  const assignedFirst = { ...base, type: 'ASSIGNED', data: { from: null, to: assignee } };
+  const reassigned = { ...base, type: 'ASSIGNED', data: { from: assignee, to: actor } };
+  const statusChanged = {
+    ...base,
+    type: 'STATUS_CHANGED',
+    data: { from: 'IN_PROGRESS', to: 'RESOLVED', comment: 'Se repuso el material dañado.' },
+  };
+  const statusChangedWithoutComment = {
+    ...base,
+    type: 'STATUS_CHANGED',
+    data: { from: 'OPEN', to: 'IN_PROGRESS', comment: null },
+  };
+
+  it('CA-04.6: la unión cubre exactamente los tipos de `IncidentEventType`', () => {
+    expect(IncidentEvent.options.map((option) => option.shape.type.value)).toEqual(
+      IncidentEventType.options,
+    );
+  });
+
+  it('CA-04.6: los campos que se registran al editar son los editables de F03', () => {
+    expect(IncidentChangedField.options).toEqual(['title', 'description', 'priority', 'dueDate']);
+  });
+
+  it.each([
+    ['CREATED sin datos', created],
+    ['UPDATED con los campos cambiados', updated],
+    ['ASSIGNED la primera vez (sin asignado anterior)', assignedFirst],
+    ['ASSIGNED al reasignar', reassigned],
+    ['STATUS_CHANGED con comentario', statusChanged],
+    ['STATUS_CHANGED sin comentario', statusChangedWithoutComment],
+  ])('CA-04.6: acepta un evento %s', (_case, event) => {
+    expect(IncidentEvent.parse(event)).toEqual(event);
+  });
+
+  it('CA-04.6: el actor del evento es un `UserSummary` (descarta su email)', () => {
+    expect(
+      IncidentEvent.parse({ ...created, actor: { ...actor, email: 'lucia@incidapp.test' } }),
+    ).toEqual(created);
+  });
+
+  it.each([
+    ['un tipo desconocido', { ...created, type: 'COMMENTED' }],
+    ['un evento sin actor', { ...created, actor: undefined }],
+    ['una fecha que no es ISO', { ...created, createdAt: '25/11/2026 10:00' }],
+    ['un id que no es UUID', { ...created, id: '42' }],
+    ['UPDATED sin cambios', { ...updated, data: { changes: [] } }],
+    [
+      'UPDATED con un campo que no se edita',
+      { ...updated, data: { changes: [{ field: 'status', before: 'OPEN', after: 'CLOSED' }] } },
+    ],
+    [
+      'UPDATED con una prioridad desconocida',
+      { ...updated, data: { changes: [{ field: 'priority', before: 'LOW', after: 'CRITICAL' }] } },
+    ],
+    ['ASSIGNED sin nuevo asignado', { ...assignedFirst, data: { from: null, to: null } }],
+    [
+      'STATUS_CHANGED con un estado desconocido',
+      { ...statusChanged, data: { ...statusChanged.data, to: 'DONE' } },
+    ],
+    [
+      'STATUS_CHANGED sin `comment` (debe ser texto o null)',
+      { ...statusChanged, data: { from: 'OPEN', to: 'IN_PROGRESS' } },
+    ],
+  ])('CA-04.6: rechaza %s', (_case, event) => {
+    expect(IncidentEvent.safeParse(event).success).toBe(false);
+  });
+
+  it('CA-04.6: `IncidentEventList` es la lista de eventos de `GET …/events`', () => {
+    const events = [created, assignedFirst, statusChangedWithoutComment, updated, statusChanged];
+
+    expect(IncidentEventList.parse(events)).toEqual(events);
+    expect(IncidentEventList.parse([])).toEqual([]);
+    expect(IncidentEventList.safeParse([{ ...created, type: 'COMMENTED' }]).success).toBe(false);
   });
 });
