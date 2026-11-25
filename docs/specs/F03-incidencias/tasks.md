@@ -6,7 +6,7 @@
 > **Plazo:** congelación el viernes 27/11/2026 a las 20:00. Orden: T-03.01 → (T-04.01) → T-03.02 ‖ T-03.03 → T-03.04 ‖ T-03.05. El despliegue de F03 se hace junto con el de F04 en **T-04.06**.
 
 ### T-03.01 · Ampliar el contrato en `shared` con incidencias y ajustar los requisitos al recorte
-- Estado: pendiente
+- Estado: hecha
 - Agente: backend-dev · Revisores: code-reviewer
 - Depende de: T-02.04
 - Paralelizable con: T-02.05, T-02.06, T-02.07
