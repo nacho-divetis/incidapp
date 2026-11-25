@@ -3,7 +3,7 @@ import { DEMO_PASSWORD, DEMO_USERS } from '@incidapp/shared';
 import { inArray } from 'drizzle-orm';
 import type { PasswordHasher } from '../../application/ports/password-hasher';
 import type { Database } from './client';
-import { departments, userDepartments, users } from './schema';
+import { departments, incidentTypes, userDepartments, users } from './schema';
 
 /** Los 9 departamentos de la empresa ficticia (ver `docs/requisitos.md`). */
 export const DEPARTMENTS = [
@@ -18,12 +18,26 @@ export const DEPARTMENTS = [
   { code: 'CAL', name: 'Calidad' },
 ] as const;
 
+/**
+ * Los 7 tipos de incidencia de `docs/requisitos.md`, cada uno con su departamento por defecto
+ * (CA-03.1). El código es estable; el nombre visible, en español.
+ */
+export const INCIDENT_TYPES = [
+  { code: 'TRANSPORT', name: 'Transporte', departmentCode: 'LOG' },
+  { code: 'SUPPLIER', name: 'Proveedor', departmentCode: 'COMP' },
+  { code: 'CUSTOMER', name: 'Cliente / Reclamación', departmentCode: 'ATC' },
+  { code: 'QUALITY', name: 'Calidad', departmentCode: 'CAL' },
+  { code: 'TECHNICAL', name: 'Técnica / Instalación', departmentCode: 'TEC' },
+  { code: 'ADMINISTRATIVE', name: 'Administrativa', departmentCode: 'ADM' },
+  { code: 'INTERNAL', name: 'Interna / Operativa', departmentCode: 'PROD' },
+] as const;
+
 export interface SeedDeps {
   passwordHasher: PasswordHasher;
 }
 
 /**
- * Carga los departamentos y los usuarios demo de `@incidapp/shared` (uno por rol) con sus
+ * Carga los departamentos, los tipos de incidencia y los usuarios demo de `@incidapp/shared` (uno por rol) con sus
  * departamentos. Lo que ya existe no se toca: un usuario demo existente conserva su contraseña.
  */
 export async function seedDatabase(db: Database, { passwordHasher }: SeedDeps): Promise<void> {
@@ -67,6 +81,19 @@ export async function seedDatabase(db: Database, { passwordHasher }: SeedDeps): 
         (row) => [row.code, row.id],
       ),
     );
+
+    await tx
+      .insert(incidentTypes)
+      .values(
+        INCIDENT_TYPES.map((type) => {
+          const departmentId = departmentIds.get(type.departmentCode);
+          if (!departmentId) {
+            throw new Error(`Seed: no se encuentra el departamento ${type.departmentCode}.`);
+          }
+          return { code: type.code, name: type.name, defaultDepartmentId: departmentId };
+        }),
+      )
+      .onConflictDoNothing({ target: incidentTypes.code });
 
     const memberships = DEMO_USERS.flatMap((user) =>
       user.departmentCodes.map((code) => {

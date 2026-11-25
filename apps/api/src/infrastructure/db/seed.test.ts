@@ -9,7 +9,7 @@ import type { DatabaseHandle } from './client';
 import { createDrizzleAuditLogWriter } from './repositories/audit-log-writer';
 import { createDrizzleSessionRepository } from './repositories/session-repository';
 import { createDrizzleUserRepository } from './repositories/user-repository';
-import { departments, userDepartments, users } from './schema';
+import { departments, incidentTypes, userDepartments, users } from './schema';
 import { seedDatabase } from './seed';
 import { createTestDatabase } from './test-database';
 
@@ -66,6 +66,46 @@ describe('seedDatabase · departamentos', () => {
     await seed();
 
     expect(await departmentCodes()).toEqual(EXPECTED_CODES);
+  });
+});
+
+/** Tipos de incidencia con el código de su dpto. por defecto, por código. */
+const incidentTypeRows = async () =>
+  (
+    await handle.db
+      .select({ code: incidentTypes.code, name: incidentTypes.name, department: departments.code })
+      .from(incidentTypes)
+      .innerJoin(departments, eq(departments.id, incidentTypes.defaultDepartmentId))
+      .orderBy(asc(incidentTypes.code))
+  ).map(({ code, name, department }) => [code, name, department]);
+
+const EXPECTED_INCIDENT_TYPES = [
+  ['ADMINISTRATIVE', 'Administrativa', 'ADM'],
+  ['CUSTOMER', 'Cliente / Reclamación', 'ATC'],
+  ['INTERNAL', 'Interna / Operativa', 'PROD'],
+  ['QUALITY', 'Calidad', 'CAL'],
+  ['SUPPLIER', 'Proveedor', 'COMP'],
+  ['TECHNICAL', 'Técnica / Instalación', 'TEC'],
+  ['TRANSPORT', 'Transporte', 'LOG'],
+];
+
+describe('seedDatabase · tipos de incidencia', () => {
+  it('CA-03.1: crea los 7 tipos de requisitos.md con su departamento por defecto', async () => {
+    await seed();
+
+    expect(await incidentTypeRows()).toEqual(EXPECTED_INCIDENT_TYPES);
+  });
+
+  it('CA-03.1: ejecutarlo dos veces no duplica ningún tipo ni cambia sus ids', async () => {
+    await seed();
+    const before = await handle.db.select().from(incidentTypes).orderBy(asc(incidentTypes.code));
+
+    await seed();
+
+    expect(await handle.db.select().from(incidentTypes).orderBy(asc(incidentTypes.code))).toEqual(
+      before,
+    );
+    expect(await incidentTypeRows()).toEqual(EXPECTED_INCIDENT_TYPES);
   });
 });
 

@@ -30,6 +30,10 @@ function sameKey(key: QueryKey | undefined, expected: QueryKey): boolean {
  * - No reintenta los errores 4xx, que no se arreglan repitiendo.
  * - Un 401 de cualquier *query* o mutación vacía la caché y llama a `onSessionExpired`. Se excluyen
  *   `me` (que convierte su 401 en `null`) y el login (su 401 es "credenciales incorrectas").
+ * - Si la caché ya está sin sesión (`me` es `null`), un 401 no vuelve a vaciarla: la página sigue
+ *   montada hasta que la navegación a `/login` se completa, y sus *queries* se recrean y vuelven a
+ *   pedir datos al vaciar la caché. Repetir el vaciado en cada 401 crearía un bucle de peticiones
+ *   que, además, no deja terminar la navegación.
  */
 export function createQueryClient({
   onSessionExpired,
@@ -37,6 +41,7 @@ export function createQueryClient({
   function handleError(error: unknown, key: QueryKey | undefined) {
     if (!(error instanceof ApiError) || error.status !== 401) return;
     if (sameKey(key, authKeys.me) || sameKey(key, authKeys.login)) return;
+    if (queryClient.getQueryData(authKeys.me) === null) return; // ya se trató la sesión caducada
     resetSessionCache(queryClient);
     onSessionExpired?.();
   }

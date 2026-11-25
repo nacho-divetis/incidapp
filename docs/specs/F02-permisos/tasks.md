@@ -74,7 +74,7 @@
 - Notas: skill `componente` para las páginas. `RequireAction({ action: 'manageUsers' })` pinta `ForbiddenPage` sin montar la página. `navItemsFor(allowedActions, pathname)` en `app/` (no mira el rol). Mutaciones que actualizan `['users', id]` e invalidan `['users']` (y `me` si el usuario editado es el actual). 409 de email → `fieldErrors.email`. Aviso de éxito por `location.state`. Tests de páginas con `fetch` simulado.
 
 ### T-02.08 · Desplegar F02 en Render y comprobar la gestión de usuarios
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: code-reviewer
 - Depende de: T-02.04, T-02.07
 - Paralelizable con: —

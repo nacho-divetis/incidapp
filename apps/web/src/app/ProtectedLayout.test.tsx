@@ -13,14 +13,14 @@ function navigation() {
 }
 
 describe('CA-02.16 · navegación según las acciones permitidas', () => {
-  it('con `manageUsers` muestra "Inicio" y "Usuarios", con la página actual marcada', async () => {
+  it('con `manageUsers` muestra "Inicio", "Incidencias" y "Usuarios", con la página actual marcada', async () => {
     mockApi({ [ME]: () => jsonResponse(200, DEMO_ADMIN), 'GET /api/health': never });
 
     renderApp('/');
 
     const nav = await navigation();
     const links = within(nav).getAllByRole('link');
-    expect(links.map((link) => link.textContent)).toEqual(['Inicio', 'Usuarios']);
+    expect(links.map((link) => link.textContent)).toEqual(['Inicio', 'Incidencias', 'Usuarios']);
     expect(within(nav).getByRole('link', { name: 'Inicio' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -28,7 +28,7 @@ describe('CA-02.16 · navegación según las acciones permitidas', () => {
     expect(within(nav).getByRole('link', { name: 'Usuarios' })).not.toHaveAttribute('aria-current');
   });
 
-  it('sin `manageUsers` solo muestra "Inicio"', async () => {
+  it('sin `manageUsers` muestra "Inicio" e "Incidencias"', async () => {
     mockApi({ [ME]: () => jsonResponse(200, DEMO_USER), 'GET /api/health': never });
 
     renderApp('/');
@@ -38,7 +38,7 @@ describe('CA-02.16 · navegación según las acciones permitidas', () => {
       within(nav)
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Inicio']);
+    ).toEqual(['Inicio', 'Incidencias']);
   });
 
   it('decide por `allowedActions`, no por el rol', async () => {
@@ -50,7 +50,7 @@ describe('CA-02.16 · navegación según las acciones permitidas', () => {
       within(await navigation())
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Inicio']);
+    ).toEqual(['Inicio', 'Incidencias']);
     first.unmount();
 
     api.on(ME, () => jsonResponse(200, { ...DEMO_USER, allowedActions: ['manageUsers'] }));
@@ -59,7 +59,7 @@ describe('CA-02.16 · navegación según las acciones permitidas', () => {
       within(await navigation())
         .getAllByRole('link')
         .map((link) => link.textContent),
-    ).toEqual(['Inicio', 'Usuarios']);
+    ).toEqual(['Inicio', 'Incidencias', 'Usuarios']);
   });
 
   it('navega a "Usuarios" y la marca como actual', async () => {

@@ -8,10 +8,12 @@ import {
   globalActionsFor,
   INCIDENT_ACTIONS,
   incidentActionsFor,
+  incidentVisibilityScope,
   userActionsFor,
   type Actor,
   type IncidentAccessFacts,
   type IncidentAction,
+  type IncidentVisibilityScope,
 } from './authorization-policy';
 
 const DEPT_ADM = '00000000-0000-4000-8000-0000000000d1';
@@ -412,5 +414,63 @@ describe('actorOf', () => {
         ],
       }),
     ).toEqual({ id: ACTORS.MANAGER.id, role: 'MANAGER', departmentIds: [DEPT_LOG, DEPT_ADM] });
+  });
+});
+
+/**
+ * Lo que hace el repositorio con el `scope` (traducirlo a SQL), escrito en TypeScript: así se
+ * comprueba que la política del listado y la del detalle dicen lo mismo.
+ */
+function inScope(scope: IncidentVisibilityScope, facts: IncidentAccessFacts): boolean {
+  if (scope.kind === 'all') return true;
+  return (
+    scope.departmentIds.includes(facts.ownerDepartmentId) ||
+    facts.createdById === scope.userId ||
+    facts.assignedToId === scope.userId
+  );
+}
+
+describe('CA-03.7: incidentVisibilityScope (visibilidad del listado)', () => {
+  it.each<{ role: Role; kind: IncidentVisibilityScope['kind'] }>([
+    { role: 'ADMIN', kind: 'all' },
+    { role: 'DIRECTOR', kind: 'all' },
+    { role: 'MANAGER', kind: 'restricted' },
+    { role: 'USER', kind: 'restricted' },
+  ])('$role ve $kind (permisos.md → Incidencias › Ver)', ({ role, kind }) => {
+    expect(incidentVisibilityScope(ACTORS[role]).kind).toBe(kind);
+  });
+
+  it('restricted lleva el id del actor y los ids de sus departamentos', () => {
+    const actor: Actor = { ...ACTORS.MANAGER, departmentIds: [DEPT_LOG, DEPT_ADM] };
+    expect(incidentVisibilityScope(actor)).toEqual({
+      kind: 'restricted',
+      userId: actor.id,
+      departmentIds: [DEPT_LOG, DEPT_ADM],
+    });
+  });
+
+  const CASES = (Object.keys(ACTORS) as Role[]).flatMap((role) =>
+    RELATIONS.flatMap((relation) => Status.options.map((status) => ({ role, relation, status }))),
+  );
+
+  it.each(CASES)(
+    '$role · $relation · $status: está en el scope si y solo si canOnIncident permite ver',
+    ({ role, relation, status }) => {
+      const actor = ACTORS[role];
+      const facts = factsFor(actor, relation, status);
+      expect(inScope(incidentVisibilityScope(actor), facts)).toBe(
+        canOnIncident(actor, facts, 'view'),
+      );
+    },
+  );
+
+  it('un actor sin departamentos solo ve lo que ha creado o tiene asignado', () => {
+    const actor: Actor = { ...ACTORS.USER, departmentIds: [] };
+    for (const relation of ['creada', 'asignada', 'ninguna'] as const) {
+      const facts = factsFor(actor, relation);
+      expect(inScope(incidentVisibilityScope(actor), facts)).toBe(
+        canOnIncident(actor, facts, 'view'),
+      );
+    }
   });
 });

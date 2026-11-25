@@ -8,5 +8,6 @@ export * from './authorization';
 export * from './demo-users';
 export * from './errors';
 export * from './health';
+export * from './incidents';
 export * from './status';
 export * from './users';

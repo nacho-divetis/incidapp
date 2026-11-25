@@ -50,6 +50,38 @@ describe('createQueryClient · 401 durante el uso (CA-01.16)', () => {
     expect(queryClient.getQueryData(authKeys.me)).toBeNull();
   });
 
+  it('con la sesión ya vaciada, otro 401 no vuelve a vaciar la caché ni a avisar (sin bucle)', async () => {
+    const { queryClient, onSessionExpired } = setup();
+    const fail401 = () =>
+      queryClient
+        .fetchQuery({ queryKey: ['other'], queryFn: () => Promise.reject(unauthorized()) })
+        .catch(() => undefined);
+
+    await fail401();
+    // La página aún montada vuelve a pedir sus datos antes de que se complete la navegación.
+    queryClient.setQueryData(['incidents'], ['dato recreado']);
+    await fail401();
+
+    expect(onSessionExpired).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(['incidents'])).toEqual(['dato recreado']);
+    expect(queryClient.getQueryData(authKeys.me)).toBeNull();
+  });
+
+  it('tras volver a iniciar sesión, un nuevo 401 se trata otra vez', async () => {
+    const { queryClient, onSessionExpired } = setup();
+    const fail401 = () =>
+      queryClient
+        .fetchQuery({ queryKey: ['other'], queryFn: () => Promise.reject(unauthorized()) })
+        .catch(() => undefined);
+
+    await fail401();
+    queryClient.setQueryData(authKeys.me, { name: 'Elena Ruiz' }); // login correcto
+    await fail401();
+
+    expect(onSessionExpired).toHaveBeenCalledTimes(2);
+    expect(queryClient.getQueryData(authKeys.me)).toBeNull();
+  });
+
   it('un 401 de una mutación también', async () => {
     const { queryClient, onSessionExpired } = setup();
     const mutation = queryClient.getMutationCache().build(queryClient, {

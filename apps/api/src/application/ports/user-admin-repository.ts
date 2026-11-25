@@ -1,4 +1,4 @@
-import type { DepartmentSummary, Role } from '@incidapp/shared';
+import type { DepartmentSummary, Role, UserSummary } from '@incidapp/shared';
 
 /**
  * Usuario tal como lo gestiona el Admin: sin el *hash* de la contraseña y sin `allowedActions`
@@ -49,4 +49,6 @@ export interface UserAdminRepository {
   update(id: string, changes: UserChanges): Promise<ManagedUser>;
   setActive(id: string, active: boolean): Promise<ManagedUser>;
   setPasswordHash(id: string, passwordHash: string): Promise<void>;
+  /** Usuarios **activos** del departamento, ordenados por nombre (candidatos a asignar, CA-03.10). */
+  listActiveByDepartment(departmentId: string): Promise<UserSummary[]>;
 }

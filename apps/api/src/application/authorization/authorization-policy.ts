@@ -135,6 +135,26 @@ export function incidentActionsFor(actor: Actor, facts: IncidentAccessFacts): In
   return INCIDENT_ACTIONS.filter((action) => canOnIncident(actor, facts, action));
 }
 
+/**
+ * Qué incidencias ve el actor en el listado (CA-03.7): `all` (Admin y Dirección) o las de **sus
+ * departamentos**, las que **ha creado** y las que **tiene asignadas** (`permisos.md` →
+ * Definiciones › Incidencia visible). Lo decide la política; el repositorio solo lo traduce a SQL.
+ * Debe coincidir con `canOnIncident(…, 'view')` (lo comprueba su test).
+ */
+export type IncidentVisibilityScope =
+  { kind: 'all' } | { kind: 'restricted'; userId: string; departmentIds: readonly string[] };
+
+export function incidentVisibilityScope(actor: Actor): IncidentVisibilityScope {
+  switch (actor.role) {
+    case 'ADMIN':
+    case 'DIRECTOR':
+      return { kind: 'all' };
+    case 'MANAGER':
+    case 'USER':
+      return { kind: 'restricted', userId: actor.id, departmentIds: [...actor.departmentIds] };
+  }
+}
+
 /** Acciones globales de cada rol (`permisos.md` → Incidencias › Crear y Administración y consulta). */
 const GLOBAL_ACTIONS_BY_ROLE: Record<Role, readonly GlobalAction[]> = {
   ADMIN: ['createIncident', 'manageUsers', 'viewAudit', 'viewDashboard'],

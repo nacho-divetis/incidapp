@@ -1,4 +1,7 @@
 import type { AuditLogWriter } from './audit-log-writer';
+import type { IncidentCodeCounter } from './incident-code-counter';
+import type { IncidentEventWriter } from './incident-event-writer';
+import type { IncidentRepository } from './incident-repository';
 import type { SessionRepository } from './session-repository';
 import type { UserAdminRepository } from './user-admin-repository';
 
@@ -7,6 +10,9 @@ export interface TransactionalRepositories {
   users: UserAdminRepository;
   sessions: SessionRepository;
   auditLog: AuditLogWriter;
+  incidents: IncidentRepository;
+  incidentCodes: IncidentCodeCounter;
+  incidentEvents: IncidentEventWriter;
 }
 
 /**

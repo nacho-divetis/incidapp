@@ -15,8 +15,8 @@ El código usa identificadores en inglés; la interfaz y la documentación, en e
 | Pertenencia a departamento | `UserDepartment` | Tabla `user_departments` |
 | Sesión | `Session` | Tabla `sessions`; identificador aleatorio de 256 bits |
 | Evento del historial | `IncidentEvent` | Tabla `incident_events`; solo inserción |
-| Comentario | `Comment` | Evento de tipo `COMMENTED` |
-| Adjunto | `Attachment` | Tabla `attachments`; contenido en `bytea` |
+| Comentario | `comment` | Campo `comment` de un evento `STATUS_CHANGED` (no hay comentarios sueltos) |
+| Adjunto | `Attachment` | Tabla `attachments`; contenido en `bytea` (fuera del TFM) |
 | Registro de auditoría | `AuditLog` | Tabla `audit_log`; solo inserción |
 | Cuadro de mando | `Dashboard` | |
 | Acciones permitidas | `allowedActions` | Calculadas por la `AuthorizationPolicy` para el usuario actual |
@@ -61,11 +61,9 @@ El código usa identificadores en inglés; la interfaz y la documentación, en e
 | Español | Código |
 |---|---|
 | Alta | `CREATED` |
-| Cambio de estado | `STATUS_CHANGED` |
-| Comentario | `COMMENTED` |
-| Asignación | `ASSIGNED` |
 | Edición | `UPDATED` |
-| Adjunto añadido | `ATTACHMENT_ADDED` |
+| Asignación | `ASSIGNED` |
+| Cambio de estado (con su comentario) | `STATUS_CHANGED` |
 
 ## Errores de aplicación
 

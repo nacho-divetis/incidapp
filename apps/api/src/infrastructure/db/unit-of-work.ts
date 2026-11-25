@@ -1,6 +1,9 @@
 import type { UnitOfWork } from '../../application/ports/unit-of-work';
 import type { Database } from './client';
 import { createDrizzleAuditLogWriter } from './repositories/audit-log-writer';
+import { createDrizzleIncidentCodeCounter } from './repositories/incident-code-counter';
+import { createDrizzleIncidentEventWriter } from './repositories/incident-event-writer';
+import { createDrizzleIncidentRepository } from './repositories/incident-repository';
 import { createDrizzleSessionRepository } from './repositories/session-repository';
 import { createDrizzleUserAdminRepository } from './repositories/user-admin-repository';
 
@@ -17,6 +20,9 @@ export function createDrizzleUnitOfWork(db: Database): UnitOfWork {
           users: createDrizzleUserAdminRepository(tx),
           sessions: createDrizzleSessionRepository(tx),
           auditLog: createDrizzleAuditLogWriter(tx),
+          incidents: createDrizzleIncidentRepository(tx),
+          incidentCodes: createDrizzleIncidentCodeCounter(tx),
+          incidentEvents: createDrizzleIncidentEventWriter(tx),
         }),
       ),
   };

@@ -23,6 +23,8 @@ const app = await buildApp({
   auth: container.auth,
   users: container.users,
   departments: container.departments,
+  incidentTypes: container.incidentTypes,
+  incidents: container.incidents,
   webDistDir: config.webDistDir,
   enforceHttps: config.enforceHttps,
   trustProxyHops: config.trustProxyHops,
