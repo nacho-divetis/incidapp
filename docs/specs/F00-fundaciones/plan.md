@@ -1,5 +1,7 @@
 # F00 · Fundaciones — Plan
 
+> **Nota (25/11/2026):** `HomePage` (`/`), `queries/health.ts` y la entrada "Inicio" de la navegación se retiraron en T-07.10 (F07): `/` y el login llevan al listado de incidencias (CA-07.5). Este plan se conserva como se ejecutó.
+
 - **Estado:** aprobado (23/11/2026)
 - **Spec:** `spec.md` (aprobada el 23/11)
 
