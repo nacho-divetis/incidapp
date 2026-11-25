@@ -11,7 +11,7 @@ Trabajo Fin de Máster del *Máster de Desarrollo con IA*, construido con agente
 | **Demo** | https://incidapp.onrender.com — plan gratuito de Render: si nadie la ha usado en los últimos minutos, **la primera carga tarda alrededor de un minuto** mientras el servicio despierta |
 | **Repositorio** | https://github.com/nacho-divetis/incidapp |
 | **Slides** | [PDF](https://github.com/nacho-divetis/incidapp/blob/main/slides/incidapp.pdf) (se ve directamente en GitHub) · versión HTML navegable en [`slides/index.html`](slides/index.html) (descárgala y ábrela en el navegador) |
-| **Vídeo** | **PENDIENTE (T-07.09):** URL pública del vídeo de la demo · guion en `slides/guion-video.md` |
+| **Vídeo** | [Ver o descargar el vídeo de la demo](https://github.com/nacho-divetis/incidapp/releases/download/video-demo/incidapp-demo.mp4) (8:34, MP4; publicado en la [release `video-demo`](https://github.com/nacho-divetis/incidapp/releases/tag/video-demo), con subtítulos) · guion en [`slides/guion-video.md`](slides/guion-video.md) |
 | **Storybook** | En local: `npm run storybook` → http://localhost:6006 (ver [Arrancar en local](#arrancar-en-local)) |
 | **Cómo se aplica el máster** | [docs/master.md](docs/master.md) |
 

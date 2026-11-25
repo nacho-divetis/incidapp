@@ -76,7 +76,7 @@
 - Notas: skill `entrega-tfm`, paso 5. Decisión 6: HTML autocontenido + PDF (impreso con el Chromium de Playwright). El guion es **ejecutable** para T-07.09: por escena, narración, acciones en el navegador (URL, usuario demo, clics) o diapositiva que se muestra, y duración objetivo. Capturas de `docs/capturas/`.
 
 ### T-07.08 · Comprobar el despliegue antes de entregar y preparar los datos del formulario
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: —
 - Depende de: T-07.05, T-07.06, T-07.07, T-07.09
 - Paralelizable con: —

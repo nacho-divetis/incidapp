@@ -2,7 +2,7 @@
 
 Cifras del proyecto calculadas con `git` y los `tasks.md`, cada una con el comando que la reproduce. Se ejecutan desde la raíz del repositorio con Git Bash o cualquier *shell* POSIX.
 
-> **Fecha de corte:** 25/11/2026, con F00–F04 en producción y F07 (entrega) cerrada salvo la comprobación final (T-07.08). Se recalculan al cerrar la entrega (T-07.08) con el *script* del final.
+> **Fecha de corte:** 25/11/2026, con F00–F04 en producción y F07 (entrega) cerrada. Se recalculan al cerrar la entrega (T-07.08) con el *script* del final.
 
 ## Resumen
 
@@ -12,7 +12,7 @@ Cifras del proyecto calculadas con `git` y los `tasks.md`, cada una con el coman
 | Features fuera del TFM | 2 (F05 adjuntos, F06 auditoría y cuadro de mando) | [requisitos.md § Trabajo futuro](../requisitos.md#trabajo-futuro) |
 | Criterios de aceptación | **98** | `grep -h '^#### CA-' docs/specs/*/spec.md \| wc -l` |
 | Tareas | **43** | `grep -h '^### T-' docs/specs/*/tasks.md \| wc -l` |
-| Tareas hechas | **41** (todas las de F00–F04 y 8 de F07; queda T-07.08, la comprobación final) | `grep -h '^- Estado: hecha' docs/specs/*/tasks.md \| wc -l` |
+| Tareas hechas | **42** (todas menos la descartada) | `grep -h '^- Estado: hecha' docs/specs/*/tasks.md \| wc -l` |
 | Tareas descartadas | 1 (T-07.03, CI ampliada) | `grep -h '^- Estado: descartada' docs/specs/*/tasks.md \| wc -l` |
 | Commits (todas las ramas) | **72**, de ellos 13 *merges* | `git log --all --oneline \| wc -l` · `git log --all --merges --oneline \| wc -l` |
 | Commits sin *merge* que citan su tarea `[T-xx.yy]` | **52 de 59** (el resto: 4 de specs, la configuración inicial y 2 sin tarea) | `git log --all --no-merges --format=%s \| grep -c '\[T-'` |
