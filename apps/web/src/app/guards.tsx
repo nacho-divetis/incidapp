@@ -1,9 +1,11 @@
-// Guardas de ruta según la sesión (CA-01.14). Deciden solo "con sesión" o "sin sesión": los
-// permisos por rol llegan de la API en `allowedActions` (F02).
+// Guardas de ruta: según la sesión (CA-01.14) y según las acciones globales que la API devuelve en
+// `allowedActions` (CA-02.17). Ninguna mira el rol.
+import type { GlobalAction } from '@incidapp/shared';
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router';
 import { Button, Spinner } from '../components/atoms';
 import { Alert } from '../components/molecules';
 import { AuthLayout } from '../components/templates';
+import { ForbiddenPage } from '../pages/ForbiddenPage';
 import { useCurrentUser } from '../queries/auth';
 import { loginPath, safeNextPath } from './safe-next-path';
 
@@ -67,5 +69,17 @@ export function RedirectIfAuthenticated() {
   if (currentUser.data) {
     return <Navigate to={safeNextPath(searchParams.get('next'))} replace />;
   }
+  return <Outlet />;
+}
+
+/**
+ * Rutas que exigen una acción global (p. ej. `manageUsers`, CA-02.17). Va dentro de `RequireSession`
+ * y `ProtectedLayout`, así que el usuario ya está en la caché. Si su `allowedActions` no incluye
+ * `action`, pinta `ForbiddenPage` **sin montar** la página: no se pide ningún dato a la API. Ocultar
+ * la página es solo usabilidad: la API vuelve a comprobar el permiso (403).
+ */
+export function RequireAction({ action }: { action: GlobalAction }) {
+  const { data: user } = useCurrentUser();
+  if (!user?.allowedActions.includes(action)) return <ForbiddenPage />;
   return <Outlet />;
 }

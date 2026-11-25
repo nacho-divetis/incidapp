@@ -64,13 +64,13 @@
 - Notas: skill `componente`, en el mismo worktree que T-02.05. Presentacionales (sin queries, router ni sesión); props según `plan.md`. `UserForm` valida con `CreateUserInput`/`UpdateUserInput` de `shared`, muestra `fieldErrors` del servidor (409 de email) y deshabilita, con una explicación, los campos que `allowedActions` no permite. `UserAccountActions` muestra cada acción solo si su `UserAction` está en `allowedActions`; desactivar pasa por `ConfirmDialog`; el restablecimiento pide la contraseña dos veces. Stories con los estados (vacío, errores, enviando, campos bloqueados, usuario demo, uno mismo, desactivado) y tests de interacción.
 
 ### T-02.07 · Montar las páginas de usuarios, la guarda por acción y la navegación
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer, security-reviewer
 - Depende de: T-02.03, T-02.06
 - Paralelizable con: T-02.04
 - Cubre: CA-02.16, CA-02.17, CA-02.18, CA-02.19, CA-02.20, CA-02.21
 - Archivos: apps/web/src/queries/{users.ts,departments.ts} (+ tests), apps/web/src/app/{router.tsx,guards.tsx,ProtectedLayout.tsx,nav-items.ts} (+ tests), apps/web/src/pages/{UsersPage,UserCreatePage,UserEditPage,ForbiddenPage}/…
-- Verificación: npm run lint && npm test -w @incidapp/web && npm run build && prueba manual con `npm run dev` (como Admin: crear, editar, desactivar, reactivar y restablecer; como Usuario: no ve "Usuarios" y `/admin/usuarios` muestra "No tienes permiso")
+- Verificación: npm run lint && npm test -w @incidapp/web && npm run build && prueba manual con `npm run dev` (como Admin: crear, editar, desactivar, reactivar y restablecer; como Usuario: no ve "Usuarios" y `/admin/usuarios` muestra "No tienes permiso") **Revisión:** hallazgo medio corregido (la `key` del formulario de edición incluye `dataUpdatedAt` para no quedarse con datos obsoletos). La prueba manual se hace en producción en T-02.08.
 - Notas: skill `componente` para las páginas. `RequireAction({ action: 'manageUsers' })` pinta `ForbiddenPage` sin montar la página. `navItemsFor(allowedActions, pathname)` en `app/` (no mira el rol). Mutaciones que actualizan `['users', id]` e invalidan `['users']` (y `me` si el usuario editado es el actual). 409 de email → `fieldErrors.email`. Aviso de éxito por `location.state`. Tests de páginas con `fetch` simulado.
 
 ### T-02.08 · Desplegar F02 en Render y comprobar la gestión de usuarios
