@@ -16,7 +16,7 @@
 - Notas: según la tabla **Contrato** de `plan.md`: `Priority`, `IncidentEventType` (los 4 tipos, también `STATUS_CHANGED`), `IncidentAllowedAction` (`update`, `assign`), `AllowedTransition`, `UserSummary`, `IncidentTypeSummary`, `IncidentTitle`/`IncidentDescription`/`DueDate`, `CreateIncidentInput`, `UpdateIncidentInput` (al menos un campo; `dueDate: null` la quita), `AssignIncidentInput`, `IncidentListQuery` (con coerción de la *query string* y `INCIDENTS_PAGE_SIZE = 20`), `IncidentListItem`, `IncidentListResponse` e `Incident` (con `allowedTransitions` y `resolvedAt`/`closedAt` desde ya, para que F04 no cambie su forma). Mensajes en español; campos del servidor descartados. **Documentación del recorte** (decisión 8 de la spec): en `docs/requisitos.md`, RF-16, RF-17, RF-19 y RF-20 pasan a **W** (fuera del TFM por la fecha de congelación), RF-18 se queda en F01 · F02, RF-11 cita los filtros reducidos, RF-14 dice "con el comentario de un cambio de estado (sin comentarios sueltos)", RF-15 sin adjuntos, y RNF-09/RNF-11 sin F05/F06; HU-02 sin adjuntos. En `docs/glosario.md`: `Priority` ya está; completar **Tipos de evento del historial** con los 4 tipos y cambiar la fila "Comentario" a "campo `comment` de un evento `STATUS_CHANGED`".
 
 ### T-03.02 · Implementar las incidencias en la API: tipos, alta con código, listado, detalle, edición y asignación
-- Estado: pendiente
+- Estado: hecha
 - Agente: backend-dev · Revisores: code-reviewer, security-reviewer
 - Depende de: T-03.01
 - Paralelizable con: T-03.03, T-04.03

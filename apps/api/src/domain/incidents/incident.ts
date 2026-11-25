@@ -17,3 +17,9 @@ export const INCIDENT_STATUSES: readonly IncidentStatus[] = [
   'REJECTED',
   'REOPENED',
 ];
+
+/** Prioridades de una incidencia. Debe coincidir con `Priority` de `@incidapp/shared`. */
+export type IncidentPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+/** Las 4 prioridades, en el orden del contrato. */
+export const INCIDENT_PRIORITIES: readonly IncidentPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];

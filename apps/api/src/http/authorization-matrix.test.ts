@@ -26,7 +26,7 @@ import { seedDatabase } from '../infrastructure/db/seed';
 import { createTestDatabase } from '../infrastructure/db/test-database';
 import { createDrizzleUnitOfWork } from '../infrastructure/db/unit-of-work';
 import { buildApp } from './app';
-import { createAuthzClient, type AuthzClient } from './test-support';
+import { createAuthzClient, unusedIncidents, type AuthzClient } from './test-support';
 
 const MISSING_ID = '00000000-0000-4000-8000-00000000ffff';
 const ROLES = ['ADMIN', 'DIRECTOR', 'MANAGER', 'USER'] as const satisfies readonly Role[];
@@ -211,6 +211,8 @@ beforeAll(async () => {
       resetUserPassword: makeResetUserPassword(adminDeps),
     },
     departments: { listDepartments: makeListDepartments(adminDeps) },
+    // Las filas de incidencias (CA-03.11) las añade T-03.05 con los casos de uso reales.
+    ...unusedIncidents,
     enforceHttps: false,
     logger: false,
   });
