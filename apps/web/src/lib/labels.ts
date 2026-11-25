@@ -1,5 +1,4 @@
-import type { Priority, Role, Status } from '@incidapp/shared';
-import type { IncidentChangedField, IncidentEvent } from '@incidapp/shared';
+import type { IncidentChangedField, IncidentEvent, Priority, Role, Status } from '@incidapp/shared';
 
 /**
  * Textos en español de los valores del dominio que se muestran en la interfaz (`docs/glosario.md`).
