@@ -49,6 +49,8 @@ test('CA-07.6: el Usuario crea, empieza y resuelve una incidencia de Transporte 
   await expect(items.nth(2)).toContainText('cambió el estado de En curso a Resuelta');
   await expect(items.nth(2)).toContainText(comment);
   await expect(items.nth(3)).toContainText('cambió el estado de Resuelta a Cerrada');
+  await expect(managerPage.getByRole('heading', { level: 1, name: title })).toBeVisible();
+  await expect(managerPage.getByText('Cerrada', { exact: true })).toBeVisible();
   await expect(managerPage.getByRole('group', { name: 'Cambiar el estado' })).toContainText(
     'Reabrir',
   );

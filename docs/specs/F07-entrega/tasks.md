@@ -16,7 +16,7 @@
 - Notas: según `plan.md` (decisión 1: ~8 usuarios ficticios adicionales con contraseña aleatoria no publicada; decisión 2: casos de uso reales con reloj guionizado desde el composition root). ~30 incidencias y ~120 eventos (≤ 40 y ≤ 200); ≥ 2 por tipo, los 7 estados, las 4 prioridades; reparto para el Usuario y el Responsable demo de `plan.md`. Idempotencia por (título, creador); nunca se actualiza nada existente. Textos en español, creíbles y **ficticios** (sin empresas, marcas ni personas reales; emails `.test`). Test de doble ejecución y de ejecución sobre una base con incidencias previas. Sin migración nueva. **Desviación aprobada (tech lead, 25/11):** la idempotencia es "una vez por base de datos" (si ya hay alguna incidencia no se carga nada, y un fallo solo avisa) en lugar de por (título, creador), para que los cambios de un evaluador no hagan recrear datos ni tumben el arranque de Render; por eso T-07.04 resetea Neon y comprueba los recuentos (30 incidencias). Los avisos no registran mensajes de la BD (revisión de seguridad).
 
 ### T-07.02 · Cubrir con Playwright los flujos principales y ejecutarlos en CI
-- Estado: pendiente
+- Estado: hecha
 - Agente: qa-tester · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: T-07.01
@@ -96,7 +96,7 @@
 - Notas: según `plan.md` (decisión 6), sin la cara del usuario. Grabación automática del navegador con Playwright (`recordVideo`, 1280×720) contra https://incidapp.onrender.com (despertada antes) siguiendo el guion de T-07.07, más `slides/index.html` y Storybook en local para las escenas de arquitectura; narración con la voz sintética de Windows (`System.Speech`, local y gratis; comprobar antes que hay una voz en español); subtítulos `.srt` en español; montaje con `ffmpeg-static` (**dependencia de desarrollo gratuita, su instalación pide confirmación**). Las acciones esperan a cada respuesta de la API, no a tiempos fijos; si la duración se sale de 8–10 min, se ajusta el texto del guion. Publicación como "oculto" en YouTube (la subida la hace el usuario) o en un *release* de GitHub (`gh release create`, pide confirmación). El MP4 no se versiona.
 
 ### T-07.10 · La raíz y el login llevan al listado de incidencias
-- Estado: en curso
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: T-07.01

@@ -7,6 +7,8 @@ test.describe('CA-07.5: login por rol', () => {
       page,
     }) => {
       await login(page, user.role);
+      // En la cabecera: el nombre también puede salir en el listado (columna Asignado de los datos demo).
+      await expect(page.getByRole('banner').getByText(user.name, { exact: true })).toBeVisible();
 
       const usersLink = page.getByRole('link', { name: 'Usuarios' });
       if (user.role === 'ADMIN') await expect(usersLink).toBeVisible();

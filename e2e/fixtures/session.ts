@@ -14,9 +14,8 @@ export async function login(page: Page, role: Role): Promise<void> {
   await page.getByLabel('Email').fill(user.email);
   await page.getByLabel('Contraseña').fill(DEMO_PASSWORD);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-  // El botón solo existe con la sesión iniciada (el nombre también sale en el panel de demo).
+  // El botón solo existe con la sesión iniciada (el panel de demo de /login también muestra nombres).
   await expect(page.getByRole('button', { name: 'Cerrar sesión' })).toBeVisible();
-  await expect(page.getByText(user.name, { exact: true })).toBeVisible();
 }
 
 /** Abre un contexto nuevo (sin cookies) y entra con ese rol. */
