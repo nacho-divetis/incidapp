@@ -10,7 +10,7 @@ Trabajo Fin de Máster del *Máster de Desarrollo con IA*, construido con agente
 |---|---|
 | **Demo** | https://incidapp.onrender.com — plan gratuito de Render: si nadie la ha usado en los últimos minutos, **la primera carga tarda alrededor de un minuto** mientras el servicio despierta |
 | **Repositorio** | https://github.com/nacho-divetis/incidapp |
-| **Slides** | **PENDIENTE (T-07.07):** `slides/index.html` (HTML autocontenido) y `slides/incidapp.pdf` |
+| **Slides** | [PDF](https://github.com/nacho-divetis/incidapp/blob/main/slides/incidapp.pdf) (se ve directamente en GitHub) · versión HTML navegable en [`slides/index.html`](slides/index.html) (descárgala y ábrela en el navegador) |
 | **Vídeo** | **PENDIENTE (T-07.09):** URL pública del vídeo de la demo · guion en `slides/guion-video.md` |
 | **Storybook** | En local: `npm run storybook` → http://localhost:6006 (ver [Arrancar en local](#arrancar-en-local)) |
 | **Cómo se aplica el máster** | [docs/master.md](docs/master.md) |
@@ -36,13 +36,13 @@ La demo trae **incidencias ficticias** en todos los estados, de todos los tipos 
 
 Email y contraseña, sesión guardada en el servidor con una cookie `httpOnly`, cierre de sesión y aviso cuando la sesión caduca, con vuelta a la página en la que se estaba.
 
-> **PENDIENTE (T-07.04):** captura `docs/capturas/login.png` (login con el recuadro de usuarios demo)
+![Inicio de sesión con el recuadro de usuarios demo](docs/capturas/login.png)
 
 ### Listado de incidencias
 
 Cada usuario ve **solo** las incidencias que le permite la [matriz de permisos](docs/permisos.md): las de sus departamentos, las que ha creado y las que tiene asignadas (Admin y Dirección, todas). Filtros por estado, prioridad, departamento, "Asignadas a mí" y búsqueda por código o título, con paginación.
 
-> **PENDIENTE (T-07.04):** captura `docs/capturas/listado.png` (listado con filtros)
+![Listado de incidencias con filtros](docs/capturas/listado.png)
 
 ### Alta, detalle, edición y asignación
 
@@ -50,19 +50,19 @@ Cada usuario ve **solo** las incidencias que le permite la [matriz de permisos](
 - **Detalle:** datos, edición y asignación a una persona del departamento propietario, según las **acciones permitidas que devuelve la API** (`allowedActions`): la web no recalcula permisos.
 - **Línea de tiempo:** alta, ediciones, asignaciones y cambios de estado con su comentario, en hora de Madrid. El historial es **solo de inserción**.
 
-> **PENDIENTE (T-07.04):** captura `docs/capturas/detalle.png` (detalle con la línea de tiempo)
+![Detalle de una incidencia con la línea de tiempo](docs/capturas/detalle.png)
 
 ### Estados
 
 Abierta → En curso (⇄ Pendiente de tercero) → Resuelta → Cerrada, con Rechazada (desde Abierta) y Reabierta (desde Cerrada). Rechazar, resolver, devolver una resuelta a En curso y reabrir **exigen un comentario**. Las transiciones de gestión (rechazar, devolver, cerrar y reabrir) son del Admin y del Responsable; las operativas, también del Usuario que creó la incidencia o la tiene asignada. Diagrama en [docs/diagramas.md](docs/diagramas.md#1--máquina-de-estados-de-una-incidencia-diagrama-de-estados).
 
-> **PENDIENTE (T-07.04):** captura `docs/capturas/transicion.png` (diálogo de cambio de estado con comentario)
+![Diálogo de cambio de estado](docs/capturas/transicion.png)
 
 ### Gestión de usuarios (Admin)
 
 Alta, edición (nombre, rol y departamentos), desactivación y reactivación, y restablecimiento de la contraseña. Desactivar un usuario o restablecer su contraseña cierra sus sesiones abiertas. Los **usuarios demo están protegidos**: solo se puede cambiar su nombre, para que la demo siga funcionando para todos. Para probar la gestión completa, crea usuarios nuevos con un email del dominio `.test`.
 
-> **PENDIENTE (T-07.04):** captura `docs/capturas/usuarios.png` (gestión de usuarios)
+![Gestión de usuarios](docs/capturas/usuarios.png)
 
 ### Sistema de diseño
 

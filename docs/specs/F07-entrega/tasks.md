@@ -36,7 +36,7 @@
 - Notas: **descartada el 25/11/2026 por el usuario (decisión 4 de la spec)** para concentrar el tiempo que queda hasta la congelación en los datos demo y los E2E: sin `Dockerfile` ni `docker build`, gitleaks, *grep* de términos prohibidos, `npm audit` en la CI, Dependabot ni Storybook público en Pages. Storybook queda solo en local (`npm run storybook`) y Docker, como trabajo futuro: lo reflejan `docs/requisitos.md` y `docs/master.md` en T-07.05.
 
 ### T-07.04 · Desplegar los datos demo y comprobarlos en producción con cada rol
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: code-reviewer
 - Depende de: T-07.01, T-07.02
 - Paralelizable con: —
@@ -66,7 +66,7 @@
 - Notas: skill `entrega-tfm`, paso 3. `harness.md` describe subagentes, skills, hooks, reglas, permisos y `AGENTS.md` con fragmentos breves. `flujo.md` sigue T-04.02 (spec CA-04.2/CA-04.3 → tarea → diff → hallazgos → commit del PR #6) o la que el usuario prefiera. `metricas.md`: features, tareas (y hechas), commits, PR, tests (de `npm test`), tareas con hallazgos y hallazgos por gravedad, calculados con `git log` y los `tasks.md`. Se cierran las cifras tras T-07.04 y se actualizan en T-07.08 si cambian. Puede mencionar que el vídeo lo generó el agente (T-07.09).
 
 ### T-07.07 · Preparar las slides y el guion del vídeo
-- Estado: pendiente
+- Estado: hecha
 - Agente: principal · Revisores: —
 - Depende de: T-07.04
 - Paralelizable con: T-07.05, T-07.06
