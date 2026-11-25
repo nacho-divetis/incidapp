@@ -21,3 +21,9 @@ Organizamos `apps/api/src` en las capas `domain` ← `application` ← `infrastr
 - **Positivas:** máquina de estados y `AuthorizationPolicy` probadas con tests unitarios puros; errores tipados que solo `http/` traduce a HTTP; una receta repetible para cada caso de uso.
 - **Negativas / deuda aceptada:** más archivos por operación; se acepta a cambio de consistencia.
 - **Cuándo revisarla:** si la ceremonia frena más de lo que protege (casos de uso que solo delegan en el repositorio).
+
+## Nota (F02, 23/11/2026): `UnitOfWork` para cambios con auditoría
+Cuando un caso de uso escribe en varias tablas y el cambio debe quedar junto con su fila de auditoría (p. ej., desactivar un usuario: `users` + borrado de `sessions` + `audit_log`), usa el puerto `UnitOfWork` (`application/ports/unit-of-work.ts`). Su método `run(work)` entrega a `work` repositorios que trabajan sobre una misma transacción; si `work` lanza, no queda nada. El adaptador (`infrastructure/db/unit-of-work.ts`) usa `db.transaction` de Drizzle, que funciona igual con PGlite y con node-postgres, y crea los repositorios sobre la transacción (los adaptadores aceptan la BD o la transacción). Reglas:
+- Las lecturas y comprobaciones previas (permiso, 404, 409) y el trabajo caro (*hash* de contraseñas) van **antes** de `run`, para no alargar la transacción.
+- Dentro de `work` solo se usan los repositorios recibidos: con PGlite (una sola conexión), una consulta con la BD de fuera esperaría a que termine la transacción.
+- F03 y F04 lo amplían con sus repositorios (incidencia + evento de historial + auditoría).

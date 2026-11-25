@@ -66,4 +66,30 @@ describe('createContainer', () => {
       await rm(dataRoot, { recursive: true, force: true });
     }
   });
+
+  it('CA-02.6, CA-02.14: monta la gestión de usuarios y el catálogo de departamentos con los adaptadores reales', async () => {
+    const dataRoot = await mkdtemp(path.join(tmpdir(), 'incidapp-container-users-'));
+    const config = loadConfig({ PGLITE_DATA_DIR: path.join(dataRoot, 'pglite') });
+    const container = await createContainer(config);
+    try {
+      await migrateDatabase(container.database);
+      await seedDatabase(container.database.db, { passwordHasher: createArgon2PasswordHasher() });
+      const admin = DEMO_USERS.find((user) => user.role === 'ADMIN')!;
+      const { user: actor } = await container.auth.login({
+        email: admin.email,
+        password: DEMO_PASSWORD,
+        ip: '127.0.0.1',
+      });
+
+      const users = await container.users.listUsers(actor);
+
+      expect(users.map((user) => user.email).sort()).toEqual(
+        DEMO_USERS.map((user) => user.email).sort(),
+      );
+      expect(await container.departments.listDepartments()).toHaveLength(9);
+    } finally {
+      await container.close();
+      await rm(dataRoot, { recursive: true, force: true });
+    }
+  });
 });
