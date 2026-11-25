@@ -58,7 +58,8 @@ export function RequireSession() {
 
 /**
  * Rutas solo para visitantes sin sesión (`/login`). Con sesión —al abrirla o justo después de
- * iniciar sesión— lleva a la ruta de `next` si es interna, o a `/`.
+ * iniciar sesión— lleva a la ruta de `next` si es interna, o a la página de inicio (el listado de
+ * incidencias, CA-07.5).
  */
 export function RedirectIfAuthenticated() {
   const [searchParams] = useSearchParams();

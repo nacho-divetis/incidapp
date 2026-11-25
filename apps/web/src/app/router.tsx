@@ -1,5 +1,7 @@
 // Rutas de la web (React Router en modo librería). Cada ruta apunta a una página de `pages/`.
 //
+// - `/`: redirige a la página de inicio, el listado de incidencias (CA-07.5). Va fuera de
+//   `RequireSession`: sin sesión, la guarda del listado lleva a `/login` sin `next`.
 // - `/login`: solo sin sesión (con sesión, `RedirectIfAuthenticated` lleva a la ruta de vuelta).
 // - Rutas protegidas: `RequireSession` (sin sesión → `/login?next=…`) + `ProtectedLayout`
 //   (`AppLayout` con la cabecera del usuario y la navegación).
@@ -9,8 +11,7 @@
 //   además `RequireAction('createIncident')`. El detalle y la edición deciden con las
 //   `allowedActions` de la incidencia (las calcula la API).
 // - Cualquier otra ruta: `NotFoundPage`, para todos.
-import { createBrowserRouter, type RouteObject } from 'react-router';
-import { HomePage } from '../pages/HomePage';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { IncidentCreatePage } from '../pages/IncidentCreatePage';
 import { IncidentDetailPage } from '../pages/IncidentDetailPage';
 import { IncidentEditPage } from '../pages/IncidentEditPage';
@@ -22,10 +23,11 @@ import { UserEditPage } from '../pages/UserEditPage';
 import { UsersPage } from '../pages/UsersPage';
 import { ProtectedLayout } from './ProtectedLayout';
 import { RedirectIfAuthenticated, RequireAction, RequireSession } from './guards';
-import { HOME_PATH, INCIDENTS_PATH, USERS_PATH } from './paths';
+import { HOME_PATH, INCIDENTS_PATH, ROOT_PATH, USERS_PATH } from './paths';
 import { LOGIN_PATH, loginPath } from './safe-next-path';
 
 export const routes: RouteObject[] = [
+  { path: ROOT_PATH, element: <Navigate to={HOME_PATH} replace /> },
   {
     element: <RedirectIfAuthenticated />,
     children: [{ path: LOGIN_PATH, element: <LoginPage /> }],
@@ -36,7 +38,6 @@ export const routes: RouteObject[] = [
       {
         element: <ProtectedLayout />,
         children: [
-          { path: HOME_PATH, element: <HomePage /> },
           {
             path: INCIDENTS_PATH,
             children: [
