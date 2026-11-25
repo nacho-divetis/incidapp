@@ -1,7 +1,7 @@
 // Enlaces de la navegación principal según las acciones globales del usuario (CA-02.16).
 import type { GlobalAction } from '@incidapp/shared';
 import type { MainNavItem } from '../components/organisms';
-import { HOME_PATH, USERS_PATH } from './paths';
+import { HOME_PATH, INCIDENTS_PATH, USERS_PATH } from './paths';
 
 interface NavEntry {
   label: string;
@@ -15,6 +15,7 @@ interface NavEntry {
 
 const NAV_ENTRIES: readonly NavEntry[] = [
   { label: 'Inicio', href: HOME_PATH, icon: 'inbox', matchSubpaths: false },
+  { label: 'Incidencias', href: INCIDENTS_PATH, icon: 'list', matchSubpaths: true },
   {
     label: 'Usuarios',
     href: USERS_PATH,
@@ -30,8 +31,9 @@ function isCurrent(entry: NavEntry, pathname: string): boolean {
 }
 
 /**
- * Enlaces que ve el usuario: "Inicio" siempre y "Usuarios" solo con `manageUsers`. Decide solo con
- * `allowedActions` (las calcula la API), nunca con el rol. Marca como actual el de `pathname`.
+ * Enlaces que ve el usuario: "Inicio" e "Incidencias" siempre y "Usuarios" solo con `manageUsers`.
+ * Decide solo con `allowedActions` (las calcula la API), nunca con el rol. Marca como actual el de
+ * `pathname`.
  */
 export function navItemsFor(
   allowedActions: readonly GlobalAction[],

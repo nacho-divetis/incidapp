@@ -15,6 +15,8 @@ import { Button, Heading, Icon, Text } from '../../atoms';
  * - **Confirmar no cierra el diálogo:** llama a `onConfirm` y quien lo usa lo cierra (`open=false`)
  *   cuando la acción termina. Mientras `isConfirming`, el botón de confirmar muestra la carga y el
  *   diálogo no se puede cerrar (ni con "Cancelar" ni con `Escape`).
+ * - `confirmDisabled`: el botón de confirmar queda deshabilitado (no hay nada que confirmar todavía).
+ * - `children`: contenido entre la descripción y los botones, como un campo o un `Alert` de error.
  * - `tone="danger"`: botón de confirmar de peligro e icono de aviso junto al título.
  *
  * Sin textos propios: título, descripción y textos de los botones llegan por props.
@@ -35,10 +37,12 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   /** La acción está en curso: carga en el botón y el diálogo no se cierra. */
   isConfirming?: boolean;
+  /** Deshabilita el botón de confirmar (sin afectar a "Cancelar" ni a `Escape`). */
+  confirmDisabled?: boolean;
   tone?: ConfirmDialogTone;
   /** Botón que abre el diálogo (opcional). Debe ser un único elemento que reenvíe `ref`. */
   trigger?: ReactElement;
-  /** Contenido extra entre la descripción y los botones (p. ej., un `Alert` con un error). */
+  /** Contenido extra entre la descripción y los botones (p. ej., un campo o un `Alert` de error). */
   children?: ReactNode;
   className?: string;
 }
@@ -52,6 +56,7 @@ export function ConfirmDialog({
   cancelLabel,
   onConfirm,
   isConfirming = false,
+  confirmDisabled = false,
   tone = 'default',
   trigger,
   children,
@@ -112,6 +117,7 @@ export function ConfirmDialog({
             <Button
               variant={isDanger ? 'danger' : 'primary'}
               loading={isConfirming}
+              disabled={confirmDisabled}
               onClick={onConfirm}
             >
               {confirmLabel}

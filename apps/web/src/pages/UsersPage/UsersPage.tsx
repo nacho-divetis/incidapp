@@ -1,24 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
+import { Link as RouterLink } from 'react-router';
 import { buttonVariants, Icon, Link, Spinner } from '../../components/atoms';
 import { Alert, PageHeader } from '../../components/molecules';
 import { UserTable } from '../../components/organisms';
+import { useLocationNotice, type LocationNoticeState } from '../../app/location-notice';
 import { USER_CREATE_PATH, userEditPath } from '../../app/paths';
 import { cn } from '../../lib/cn';
 import { errorMessageOf } from '../../lib/api/error-messages';
 import { useUsers } from '../../queries/users';
 
 /** Estado de navegación con el que otras páginas dejan un aviso de éxito para el listado. */
-export interface UsersPageLocationState {
-  notice: string;
-}
-
-/** Lee el aviso del estado de navegación (puede venir de cualquier parte: se comprueba la forma). */
-function noticeOf(state: unknown): string | undefined {
-  if (typeof state !== 'object' || state === null || !('notice' in state)) return undefined;
-  const { notice } = state as { notice: unknown };
-  return typeof notice === 'string' && notice !== '' ? notice : undefined;
-}
+export type UsersPageLocationState = LocationNoticeState;
 
 /**
  * Listado de la gestión de usuarios (`/admin/usuarios`, CA-02.18). Va dentro de
@@ -31,15 +22,7 @@ function noticeOf(state: unknown): string | undefined {
  */
 export function UsersPage() {
   const users = useUsers();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [notice] = useState(() => noticeOf(location.state));
-
-  useEffect(() => {
-    if (noticeOf(location.state)) {
-      void navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
-    }
-  }, [location.state, location.pathname, location.search, navigate]);
+  const notice = useLocationNotice();
 
   let content;
   if (users.isPending) {
