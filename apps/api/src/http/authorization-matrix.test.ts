@@ -43,6 +43,9 @@ import { seedDatabase } from '../infrastructure/db/seed';
 import { createTestDatabase } from '../infrastructure/db/test-database';
 import { createDrizzleUnitOfWork } from '../infrastructure/db/unit-of-work';
 import { buildApp } from './app';
+import { makeChangeIncidentStatus } from '../application/incidents/change-incident-status';
+import { makeListIncidentEvents } from '../application/incidents/list-incident-events';
+import { createDrizzleIncidentEventReader } from '../infrastructure/db/repositories/incident-event-reader';
 import {
   createAuthzClient,
   unusedAdmin,
@@ -349,6 +352,7 @@ async function startHarness(): Promise<Harness> {
   const incidentDeps = {
     incidents: createDrizzleIncidentRepository(database.db),
     incidentTypes: createDrizzleIncidentTypeRepository(database.db),
+    incidentEvents: createDrizzleIncidentEventReader(database.db),
     users: createDrizzleUserAdminRepository(database.db),
     unitOfWork: createDrizzleUnitOfWork(database.db),
     clock,
@@ -370,6 +374,8 @@ async function startHarness(): Promise<Harness> {
       updateIncident: makeUpdateIncident(incidentDeps),
       listAssignees: makeListAssignees(incidentDeps),
       assignIncident: makeAssignIncident(incidentDeps),
+      changeIncidentStatus: makeChangeIncidentStatus(incidentDeps),
+      listIncidentEvents: makeListIncidentEvents(incidentDeps),
     },
     enforceHttps: false,
     logger: false,
