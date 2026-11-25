@@ -54,7 +54,7 @@
 - Notas: skill `componente`, en un worktree de `.worktrees/`. Dependencia `@radix-ui/react-alert-dialog` (MIT, aprobada por el usuario el 23/11; la instalación pide confirmación). Props según `plan.md`. `Table` con partes semánticas, `scope` en las cabeceras y desplazamiento horizontal propio en móvil. `CheckboxGroup` con `fieldset`/`legend` y el error asociado. `ConfirmDialog` con el foco inicial en "Cancelar" y `tone` danger. Sin textos de negocio fijos ni `@incidapp/shared` en el átomo. Cada uno con story y test; axe sin violaciones. Hecha: `@radix-ui/react-alert-dialog@^1.2.1` (MIT). `Table` añade `TableCaption`, `containerClassName` y `regionLabel` (región enfocable para tablas anchas sin elementos enfocables; `UserTable` no la necesita porque tiene enlaces). `CheckboxGroup` con `required`, `emptyMessage`, `columns` (1–2) y `ref` al `fieldset`. `ConfirmDialog` con `trigger` y `children` opcionales; **confirmar no cierra**: lo cierra quien lo usa con `open=false` al terminar; con `isConfirming` no se puede cerrar. axe sin violaciones en las 21 stories (jsdom) y en Chrome a 320 y 1024 px. 339 tests en web. Revisión: aprobada (1 bajo sin cambios: `Table` ancha sin `regionLabel` ni enfocables da aviso de axe; documentado en el JSDoc). **Para T-02.06:** tras desactivar, llevar el foco al aviso o al botón nuevo; el `Alert` de error dentro del diálogo se pasa desde el organismo (las moléculas no se importan entre sí). Aviso: `architecture.test.ts` puede superar los 5 s en frío.
 
 ### T-02.06 · Crear los organismos `MainNav`, `UserTable`, `UserForm` y `UserAccountActions`
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-02.05
 - Paralelizable con: T-02.02, T-02.03
