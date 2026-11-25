@@ -2,7 +2,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { DEMO_ADMIN, DEMO_USER, HEALTH_OK, jsonResponse, mockApi, never } from '../test/api-mock';
+import { DEMO_ADMIN, DEMO_USER, jsonResponse, mockApi, never } from '../test/api-mock';
 import { renderApp } from '../test/render-app';
 
 const ME = 'GET /api/auth/me';
@@ -31,10 +31,11 @@ describe('CA-02.17 · página sin permiso', () => {
     expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument();
   });
 
-  it('el enlace lleva a la página de inicio', async () => {
+  it('el enlace lleva a la página de inicio (el listado de incidencias)', async () => {
     mockApi({
       [ME]: () => jsonResponse(200, DEMO_USER),
-      'GET /api/health': () => jsonResponse(200, HEALTH_OK),
+      'GET /api/incidents?page=1': never,
+      'GET /api/departments': never,
     });
     const user = userEvent.setup();
     const { currentPath } = renderApp('/admin/usuarios');
@@ -42,8 +43,10 @@ describe('CA-02.17 · página sin permiso', () => {
     const main = await screen.findByRole('main');
     await user.click(within(main).getByRole('link', { name: 'Volver a la página de inicio' }));
 
-    expect(await screen.findByText('Hola, Pablo Moreno.')).toBeInTheDocument();
-    expect(currentPath()).toBe('/');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Incidencias' }),
+    ).toBeInTheDocument();
+    expect(currentPath()).toBe('/incidencias');
   });
 
   it('con `manageUsers`, monta la página (que pide sus datos)', async () => {

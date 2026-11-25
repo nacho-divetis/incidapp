@@ -92,9 +92,8 @@ describe('CA-02.18 · listado de usuarios', () => {
     mockApi({
       [ME]: () => jsonResponse(200, DEMO_ADMIN),
       [USERS]: () => jsonResponse(200, []),
-      'GET /api/health': never,
     });
-    const { router } = renderApp('/');
+    const { router } = renderApp('/no-existe');
     await act(() =>
       router.navigate('/admin/usuarios', { state: { notice: 'Usuario Lucía Gil creado.' } }),
     );
@@ -108,9 +107,8 @@ describe('CA-02.18 · listado de usuarios', () => {
     mockApi({
       [ME]: () => jsonResponse(200, DEMO_ADMIN),
       [USERS]: () => jsonResponse(200, []),
-      'GET /api/health': never,
     });
-    const { router } = renderApp('/');
+    const { router } = renderApp('/no-existe');
 
     await act(() => router.navigate('/admin/usuarios', { state: { notice: 42 } }));
 

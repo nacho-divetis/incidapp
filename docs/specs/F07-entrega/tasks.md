@@ -6,17 +6,17 @@
 > **Plazo:** T-07.01, T-07.02 y T-07.04 antes de la congelación (viernes 27/11/2026 a las 20:00), en el PR de `feat/F07-entrega`. T-07.05 a T-07.09 son documentación, slides y vídeo, y pueden seguir hasta el domingo 29/11, en un segundo PR (`feat/F07-documentacion`). F05 y F06 quedan fuera del TFM: nada de adjuntos, auditoría ni cuadro de mando.
 
 ### T-07.01 · Cargar en el seed incidencias demo ficticias con historial coherente
-- Estado: pendiente
+- Estado: hecha
 - Agente: backend-dev · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: T-07.02
 - Cubre: CA-07.1, CA-07.2, CA-07.3, CA-07.4
 - Archivos: apps/api/src/infrastructure/db/{demo-incidents.ts,seed.ts} (+ tests), apps/api/src/composition/db-command.ts (+ test)
 - Verificación: npm test -w @incidapp/api -- seed && npm run typecheck && npm run lint && `npm run db:seed` dos veces seguidas sobre una PGlite local sin duplicados
-- Notas: según `plan.md` (decisión 1: ~8 usuarios ficticios adicionales con contraseña aleatoria no publicada; decisión 2: casos de uso reales con reloj guionizado desde el composition root). ~30 incidencias y ~120 eventos (≤ 40 y ≤ 200); ≥ 2 por tipo, los 7 estados, las 4 prioridades; reparto para el Usuario y el Responsable demo de `plan.md`. Idempotencia por (título, creador); nunca se actualiza nada existente. Textos en español, creíbles y **ficticios** (sin empresas, marcas ni personas reales; emails `.test`). Test de doble ejecución y de ejecución sobre una base con incidencias previas. Sin migración nueva.
+- Notas: según `plan.md` (decisión 1: ~8 usuarios ficticios adicionales con contraseña aleatoria no publicada; decisión 2: casos de uso reales con reloj guionizado desde el composition root). ~30 incidencias y ~120 eventos (≤ 40 y ≤ 200); ≥ 2 por tipo, los 7 estados, las 4 prioridades; reparto para el Usuario y el Responsable demo de `plan.md`. Idempotencia por (título, creador); nunca se actualiza nada existente. Textos en español, creíbles y **ficticios** (sin empresas, marcas ni personas reales; emails `.test`). Test de doble ejecución y de ejecución sobre una base con incidencias previas. Sin migración nueva. **Desviación aprobada (tech lead, 25/11):** la idempotencia es "una vez por base de datos" (si ya hay alguna incidencia no se carga nada, y un fallo solo avisa) en lugar de por (título, creador), para que los cambios de un evaluador no hagan recrear datos ni tumben el arranque de Render; por eso T-07.04 resetea Neon y comprueba los recuentos (30 incidencias). Los avisos no registran mensajes de la BD (revisión de seguridad).
 
 ### T-07.02 · Cubrir con Playwright los flujos principales y ejecutarlos en CI
-- Estado: pendiente
+- Estado: hecha
 - Agente: qa-tester · Revisores: code-reviewer
 - Depende de: —
 - Paralelizable con: T-07.01
@@ -94,6 +94,16 @@
 - Archivos: scripts/video/… (generación), slides/guion-video.srt (subtítulos), package.json (`ffmpeg-static` y un script `video`), .gitignore (`video/` con el MP4 y los intermedios)
 - Verificación: MP4 de 8 a 10 min (duración leída con `ffmpeg -i`) con pantalla, voz y subtítulos · sin datos reales ni secretos en la imagen · revisión del usuario antes de publicarlo · URL pública que abre sin sesión
 - Notas: según `plan.md` (decisión 6), sin la cara del usuario. Grabación automática del navegador con Playwright (`recordVideo`, 1280×720) contra https://incidapp.onrender.com (despertada antes) siguiendo el guion de T-07.07, más `slides/index.html` y Storybook en local para las escenas de arquitectura; narración con la voz sintética de Windows (`System.Speech`, local y gratis; comprobar antes que hay una voz en español); subtítulos `.srt` en español; montaje con `ffmpeg-static` (**dependencia de desarrollo gratuita, su instalación pide confirmación**). Las acciones esperan a cada respuesta de la API, no a tiempos fijos; si la duración se sale de 8–10 min, se ajusta el texto del guion. Publicación como "oculto" en YouTube (la subida la hace el usuario) o en un *release* de GitHub (`gh release create`, pide confirmación). El MP4 no se versiona.
+
+### T-07.10 · La raíz y el login llevan al listado de incidencias
+- Estado: hecha
+- Agente: frontend-dev · Revisores: code-reviewer
+- Depende de: —
+- Paralelizable con: T-07.01
+- Cubre: CA-07.5 (tras iniciar sesión se llega al listado)
+- Archivos: apps/web/src/app/{safe-next-path.ts,router.tsx,nav-items.ts} (+ tests), apps/web/src/pages/HomePage/… (si se retira)
+- Verificación: npm run typecheck && npm run lint && npm test -w @incidapp/web && npm run e2e
+- Notas: surgida de T-07.02, cuyos E2E detectaron que el destino por defecto tras el login era la página de inicio de F00 (`/`) y no el listado que pide CA-07.5. Se corrige el código (no la spec). Se mantienen `next` y CA-01.16.
 
 ---
 
