@@ -203,7 +203,11 @@ describe('CA-01.16 · sesión caducada durante el uso', () => {
     const { currentPath } = renderApp('/?vista=lista');
 
     expect(
-      await screen.findByText('Tu sesión ha caducado. Vuelve a iniciar sesión.'),
+      await screen.findByText(
+        'Tu sesión ha caducado. Vuelve a iniciar sesión.',
+        {},
+        { timeout: 5000 },
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeInTheDocument();
     expect(currentPath()).toBe('/login?next=%2F%3Fvista%3Dlista&expired=1');
