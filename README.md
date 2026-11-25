@@ -1,6 +1,6 @@
 # IncidApp
 
-Aplicación web para registrar y hacer seguimiento de las incidencias de una **empresa ficticia**: roles y departamentos, estados con historial, adjuntos, auditoría y cuadro de mando.
+Aplicación web para registrar y hacer seguimiento de las incidencias de una **empresa ficticia**: roles y departamentos, incidencias con código, asignación, estados con historial inalterable y gestión de usuarios.
 
 Trabajo Fin de Máster del *Máster de Desarrollo con IA*. Todos los datos son **sintéticos**.
 
@@ -27,6 +27,15 @@ La contraseña es pública **a propósito**: la demo solo contiene datos fictici
 ### Gestión de usuarios
 
 El Admin gestiona los usuarios desde **Usuarios** (alta, edición, desactivación y reactivación, y restablecimiento de la contraseña). Los **usuarios demo están protegidos**: solo se puede cambiar su nombre, no se pueden desactivar ni cambiar su contraseña, para que la demo siga funcionando para todos. Para probar la gestión completa, crea usuarios nuevos (con un email del dominio `.test`). Desactivar un usuario o restablecer su contraseña cierra sus sesiones abiertas.
+
+### Incidencias y estados
+
+- **Alta:** cualquier rol salvo Dirección crea incidencias eligiendo un tipo; el tipo decide el departamento que la recibe y el servidor genera el código (`INC-AAAA-NNNN`).
+- **Listado:** cada usuario ve solo las incidencias que le permite `docs/permisos.md`, con filtros por estado, prioridad, departamento, "Asignadas a mí" y búsqueda por código o título.
+- **Detalle:** datos, edición y asignación (según las acciones permitidas que devuelve la API), botones de cambio de estado y la **línea de tiempo** con todo lo ocurrido, en hora de Madrid.
+- **Estados:** Abierta → En curso → Resuelta → Cerrada, con Rechazada y Reabierta. Rechazar, cerrar y reabrir exigen un comentario. El historial es solo de inserción.
+
+**Alcance recortado del TFM:** por plazo, quedan fuera los adjuntos, el registro de auditoría de incidencias, el cuadro de mando y los comentarios sueltos (solo hay comentario al cambiar de estado). Están descritos como trabajo futuro en `docs/requisitos.md`.
 
 ## Stack
 

@@ -36,7 +36,7 @@
 - Notas: skill `componente`, en el worktree de `.worktrees/` de T-03.03 (o uno nuevo desde la rama de la feature). Sin dependencias nuevas: `ConfirmDialog` gana `children?` y `confirmDisabled?`, y "Confirmar" no cierra el diálogo por sí solo (`open` controlado), sin romper sus usos de F02. Props según `plan.md`. `transitionLabel(from, to)` con los textos de la decisión 7 de la spec; `describeEvent` con las frases de CA-04.9 y `formatDateTime` de T-03.03. El comentario es obligatorio solo si `requiresComment`, con el error junto al campo; el error de la API se muestra dentro del diálogo sin perder el comentario. Stories: sin transiciones, cada estado de origen, diálogo con comentario obligatorio y opcional, enviando, error; línea de tiempo con los 4 tipos de evento. Tests de interacción y axe (foco atrapado, `Escape` cierra).
 
 ### T-04.04 · Integrar las acciones de estado y la línea de tiempo en el detalle
-- Estado: pendiente
+- Estado: hecha
 - Agente: frontend-dev · Revisores: code-reviewer
 - Depende de: T-04.02, T-04.03, T-03.04
 - Paralelizable con: T-04.05
