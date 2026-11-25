@@ -6,6 +6,7 @@ IncidApp es una aplicación web para registrar y hacer seguimiento de las incide
 - Cada requisito indica la feature que lo implementa (`docs/specs/<Fxx>/`). Los criterios de aceptación (`CA-xx.y`) de cada spec concretan cómo se comprueba.
 - Las reglas de acceso están en [`permisos.md`](permisos.md) y los términos, en [`glosario.md`](glosario.md).
 - **Recorte del TFM** (decisión 8 de la spec de F03, por la fecha de congelación del 27/11/2026): los adjuntos (F05), la consulta de la auditoría y el cuadro de mando (F06) y los comentarios sueltos quedan fuera de esta versión (**W**). La auditoría sigue registrando lo de F01 y F02.
+- **Recorte de la entrega** (decisión 4 de la spec de F07, 25/11/2026): Storybook se ejecuta solo en local y el `Dockerfile`, la CI ampliada y Storybook público quedan como trabajo futuro (ver [Trabajo futuro](#trabajo-futuro)).
 
 ## Actores
 
@@ -81,8 +82,8 @@ Cada usuario tiene **un rol global** y pertenece a **uno o varios departamentos*
 |---|---|---|---|
 | RNF-01 | **Despliegue con coste cero:** URL pública en Render (plan gratuito) con PostgreSQL en Neon (plan gratuito). Ningún servicio, plan ni dependencia de pago | M | F00 |
 | RNF-02 | **Arquitectura por capas** (Clean Architecture en la API: `domain` ← `application` ← `infrastructure`/`http` ← `composition`), comprobada con ESLint | M | F00 |
-| RNF-03 | **Calidad automatizada:** lint, comprobación de tipos, tests y build en cada PR (GitHub Actions) y en cada commit (Husky, lint-staged y commitlint) | M | F00 · F07 |
-| RNF-04 | **Sistema de diseño** con atomic design (tokens, átomos, moléculas, organismos y plantillas), documentado en Storybook y con la regla de niveles comprobada con ESLint | M | F00 |
+| RNF-03 | **Calidad automatizada:** lint, comprobación de tipos, tests y build en cada PR (GitHub Actions), los E2E de Playwright en un flujo propio y, en cada commit, Husky, lint-staged y commitlint. La CI ampliada (`Dockerfile` y `docker build`, gitleaks, búsqueda de términos prohibidos, `npm audit` y Dependabot) queda como **trabajo futuro** (decisión 4 de la spec de F07) | M | F00 · F07 |
+| RNF-04 | **Sistema de diseño** con atomic design (tokens, átomos, moléculas, organismos y plantillas), documentado en Storybook **en local** (`npm run storybook`) y con la regla de niveles comprobada con ESLint. Publicar Storybook en GitHub Pages queda como trabajo futuro (decisión 4 de la spec de F07) | M | F00 |
 | RNF-05 | **Confidencialidad:** solo datos ficticios; ningún nombre, logo, documento ni dato de una empresa o persona real | M | Todas |
 | RNF-06 | **Idioma:** identificadores de código en inglés; interfaz, mensajes, documentación y commits en español | M | Todas |
 | RNF-07 | **Seguridad (OWASP Top 10):** contraseñas con argon2id; sesión en BD con cookie `httpOnly`, `secure` y `sameSite=Lax`, rotada al iniciar sesión; cabecera `X-Requested-With` obligatoria en las peticiones que modifican datos; *rate limit* en el login; cabeceras de seguridad con CSP; toda entrada validada con Zod | M | F00 · F01 |
@@ -93,3 +94,15 @@ Cada usuario tiene **un rol global** y pertenece a **uno o varios departamentos*
 | RNF-12 | **Tests:** cobertura alta (> 85 %) en `domain` y `application`; matriz completa de autorización en la API; 3 flujos E2E | M | F02 en adelante · F07 |
 | RNF-13 | **Proceso trazable:** cada feature tiene spec, plan y tareas (SDD), y cada commit cita la tarea que implementa (RF → CA → T → commit → PR) | M | Todas |
 | RNF-14 | **Fechas** en formato `dd/mm/aaaa` y zona `Europe/Madrid` en la interfaz | S | F03 en adelante |
+
+## Trabajo futuro
+
+Fuera de esta versión por los recortes del TFM (decisión 8 de la spec de F03 y decisión 4 de la de F07):
+
+- **Adjuntos** (RF-16, RF-17, RF-24): diseño ya decidido en [ADR-005](adr/005-adjuntos-en-bytea.md) (`bytea`, *magic bytes*, 5 MB).
+- **Consulta de la auditoría y cuadro de mando** (RF-19, RF-20, RF-25). La auditoría ya registra los inicios de sesión y los cambios de usuarios.
+- **Comentarios sueltos** en una incidencia (hoy solo hay comentario al cambiar de estado).
+- **Docker:** `Dockerfile` multietapa construido en la CI (Render usa Node nativo y no lo necesita).
+- **CI ampliada:** gitleaks, búsqueda de términos prohibidos (RNF-05), `npm audit` y Dependabot.
+- **Storybook público** en GitHub Pages ([ADR-006](adr/006-despliegue-coste-cero.md) lo preveía; hoy se ejecuta en local con `npm run storybook`).
+- Notificaciones por email y exportación a CSV (RF-22, RF-23).
