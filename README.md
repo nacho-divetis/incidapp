@@ -152,7 +152,9 @@ npm run e2e                       # E2E con Playwright sobre la app compilada y 
 npm run storybook                 # Storybook en http://localhost:6006
 ```
 
-> **PENDIENTE (T-07.05):** probar esta secuencia en un clon limpio cuando T-07.02 (E2E) esté en `main`.
+Si el puerto 5173 está ocupado, Vite usa el siguiente libre (5174…) y lo indica en la consola; la API necesita el 3000 libre.
+
+> Secuencia probada en un clon limpio de `main` el 25/11/2026 en Windows 11 con Node 24.14.0 y npm 11.11.0, sin `.env` ni `DATABASE_URL` (PGlite).
 
 ### Comandos
 
