@@ -34,13 +34,13 @@
 - Notas: skill `caso-de-uso`. Endpoints, códigos y mensajes según `plan.md`: 403 por no ser Admin antes que el 404 y que la validación del cuerpo; `:id` no UUID → 404; 409 por regla de negocio (uno mismo, usuario demo, email repetido también de un inactivo); desactivar o activar sin cambio → 200 sin auditoría; *diff* en el `PATCH` (solo lo que cambia pide su `UserAction` y se audita). `UnitOfWork` con `db.transaction`: cambio + borrado de sesiones + auditoría juntos, con un test de reversión. Auditoría con `before`/`after` de los campos cambiados (departamentos por código), nunca contraseña ni *hash*. `cache-control: no-store` en `/api/users*`. Tests con `fastify.inject` de cada criterio, incluido que el usuario desactivado da 401 en su siguiente petición y que el reset cierra sus sesiones. Sin migración nueva. Nota en ADR-002 sobre la `UnitOfWork`.
 
 ### T-02.04 · Escribir la matriz de autorización de la API
-- Estado: pendiente
+- Estado: hecha
 - Agente: qa-tester · Revisores: code-reviewer
 - Depende de: T-02.03
 - Paralelizable con: T-02.07
 - Cubre: CA-02.15
 - Archivos: apps/api/src/http/authorization-matrix.test.ts, apps/api/src/http/test-support.ts (ayudas para crear un usuario con sesión de cada rol)
-- Verificación: npm test -w @incidapp/api -- authorization-matrix && npm run lint
+- Verificación: npm test -w @incidapp/api -- authorization-matrix && npm run lint **Revisión de la política contra `permisos.md`:** sin diferencias. Observaciones para documentar: el Admin puede restablecer su propia contraseña; la protección de los usuarios demo viene de CA-02.11; la regla "el asignado es un usuario activo del departamento propietario" corresponde al caso de uso de asignar (F03).
 - Notas: tabla `it.each` `{ método, endpoint, sin sesión, ADMIN, DIRECTOR, MANAGER, USER }` con todos los endpoints de F02 (`/api/users…`, `/api/departments`), con `X-Requested-With` y cuerpos válidos para que el código dependa solo del permiso. Comprueba también que un no-Admin recibe 403 (no 404) con un id inexistente. Estructura pensada para que F03 y F04 añadan filas con incidencias visibles y no visibles. Revisa además la tabla de la política de T-02.02 contra `docs/permisos.md` y propone (no corrige) las diferencias que encuentre. No toca código de producción.
 
 ### T-02.05 · Instalar Radix y crear el átomo `Table` y las moléculas `CheckboxGroup`, `ConfirmDialog` y `PageHeader`
