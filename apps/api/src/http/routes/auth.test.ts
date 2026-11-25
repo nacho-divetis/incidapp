@@ -30,6 +30,7 @@ import { seedDatabase } from '../../infrastructure/db/seed';
 import { createTestDatabase } from '../../infrastructure/db/test-database';
 import { buildApp } from '../app';
 import { CSRF_HEADER_MISSING_MESSAGE } from '../csrf';
+import { unusedAdmin } from '../test-support';
 import { LOGIN_RATE_LIMIT_MESSAGE } from './auth';
 
 const T0 = new Date('2026-11-23T10:00:00.000Z');
@@ -83,6 +84,7 @@ async function setup(options: SetupOptions = {}) {
   };
   app = await buildApp({
     getHealth,
+    ...unusedAdmin,
     auth: {
       login: makeLogin(deps),
       logout: makeLogout(deps),
