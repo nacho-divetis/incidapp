@@ -123,6 +123,7 @@ Que la autorización de IncidApp se decida en un único sitio, la `Authorization
 - **Entonces** la navegación de `AppLayout` muestra "Inicio" y, solo si `allowedActions` incluye gestionar usuarios, "Usuarios"
 - **Y** el enlace de la página actual lleva `aria-current="page"`
 - **Y** la web no comprueba el rol: decide solo con `allowedActions`
+- **Actualizado el 25/11/2026 (T-07.10):** la primera entrada de la navegación es ahora "Incidencias" (F03), y "Inicio" se retiró con la página inicial.
 
 #### CA-02.17 · Página sin permiso
 - **Dado** un usuario sin la acción de gestionar usuarios

@@ -64,6 +64,7 @@ La feature se entrega en **dos bloques**, cada uno con su rama y su PR:
 - **Dado** la web cargada en el navegador
 - **Cuando** la página inicial consulta `/api/health` (mediante el cliente de `lib/api` y un hook de `queries/`)
 - **Entonces** muestra el nombre "IncidApp" y el estado de la API ("Conectada" o "Sin conexión"), con estado de carga mientras espera
+- **Sustituido el 25/11/2026 por CA-07.5 (T-07.10):** la página inicial se retiró; `/` y el login llevan al listado de incidencias. `/api/health` sigue disponible para la monitorización.
 
 #### CA-00.8 · Migraciones al arrancar e idempotentes
 - **Dado** una base de datos vacía

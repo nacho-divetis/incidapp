@@ -1,6 +1,6 @@
 # ADR-006 · Despliegue con coste cero: Render, Neon y GitHub Pages
 
-- **Estado:** aceptado
+- **Estado:** aceptado · **modificado el 25/11/2026** (Storybook y arranque; ver "Actualización")
 - **Fecha:** 23/11/2026
 - **Relacionado:** ADR-001, ADR-004, ADR-005, F00, F07
 
@@ -26,3 +26,8 @@ El TFM exige una demo desplegada y el proyecto tiene una restricción no negocia
 - **Positivas:** URL pública desde el primer día, despliegue automático y reproducible, coste cero.
 - **Negativas / deuda aceptada:** la primera visita tarda en despertar el servicio (se avisa en el README; sin *ping* programado, recorte del 23/11). Una migración fallida impide arrancar, y eso es lo deseado.
 - **Cuándo revisarla:** si la demo necesitara estar siempre despierta o el plan gratuito cambiara sus límites.
+
+## Actualización (25/11/2026)
+- **Storybook no se publica en GitHub Pages.** La tarea que lo hacía (T-07.03, junto con la CI ampliada y el `Dockerfile`) se descartó por el plazo de entrega. Storybook se usa en local (`npm run storybook`); la publicación queda como trabajo futuro en `docs/requisitos.md`.
+- **El arranque también carga los datos demo:** `npm run db:migrate && npm run db:seed && npm start`. El *seed* es idempotente y solo carga las incidencias demo en una base sin incidencias; si falla, avisa y no impide arrancar (T-07.01).
+- El resto de la decisión (Render + Neon, despliegue al hacer merge con la CI en verde, adjuntos fuera del TFM) sigue vigente.
